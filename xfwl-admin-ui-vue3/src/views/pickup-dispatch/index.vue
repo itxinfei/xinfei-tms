@@ -170,6 +170,43 @@
           <el-descriptions-item label="取消时间">{{ detail.cancelTime || "-" }}</el-descriptions-item>
           <el-descriptions-item label="备注" :span="2">{{ detail.mark || "-" }}</el-descriptions-item>
         </el-descriptions>
+
+        <!-- 签收回单（B2，派件任务且已签收/拒收后展示） -->
+        <el-descriptions
+          v-if="detail.taskType === PickupDispatchTaskType.DISPATCH && (detail.signStatus === 1 || detail.signStatus === 2)"
+          title="签收回单"
+          :column="2"
+          border
+          class="pickup-dispatch-detail__block"
+        >
+          <el-descriptions-item label="签收备注" :span="2">{{ detail.signRemark || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="现场照片" :span="2">
+            <template v-if="detail.signPictures?.length">
+              <el-image
+                v-for="(url, i) in detail.signPictures"
+                :key="i"
+                :src="url"
+                fit="cover"
+                :preview-src-list="detail.signPictures"
+                :initial-index="i"
+                preview-teleported
+                class="pod-thumb"
+              />
+            </template>
+            <span v-else>-</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="客户签名" :span="2">
+            <el-image
+              v-if="detail.signSignature"
+              :src="detail.signSignature"
+              fit="contain"
+              :preview-src-list="[detail.signSignature]"
+              preview-teleported
+              class="pod-sign"
+            />
+            <span v-else>-</span>
+          </el-descriptions-item>
+        </el-descriptions>
       </template>
     </el-drawer>
 
@@ -443,5 +480,23 @@ onMounted(loadList);
   font-size: 13px;
   line-height: 1.8;
   color: var(--el-text-color-secondary);
+}
+
+/* 签收回单缩略图 */
+.pod-thumb {
+  width: 56px;
+  height: 56px;
+  margin: 0 8px 8px 0;
+  border-radius: 4px;
+  border: 1px solid var(--el-border-color-lighter);
+  cursor: pointer;
+}
+.pod-sign {
+  width: 160px;
+  height: 80px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
 }
 </style>

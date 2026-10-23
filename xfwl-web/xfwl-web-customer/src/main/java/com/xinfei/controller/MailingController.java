@@ -40,6 +40,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.bind.annotation.*;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -59,6 +61,14 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("mailing")
 public class MailingController {
+
+    /**
+     * 签收凭证 JSON 解析专用 mapper（Jackson3，tools.jackson）。
+     * 与快递员端落库序列化（jacksonJsonMapper）同为 Jackson3，读写一套口径；
+     * 此处仅解析 List<String>，用静态只读实例即可，不再扩张构造器参数
+     */
+    private static final ObjectMapper SIGN_JSON_MAPPER = JsonMapper.builder().build();
+
     // 地理服务客户端（批3 收敛，替代 EntCoordSyncJob 静态 HTTP 调用）
     @org.springframework.beans.factory.annotation.Autowired
     private GeoClient geoClient;
@@ -1127,6 +1137,13 @@ public class MailingController {
                 }
             }
         }
+        // 签收凭证（B2）：只取本订单派件任务（taskType=2），照片 JSON 串反序列化为数组透出；
+        // 手写签名图不对客户开放，故不下发 signSignature。任务列表已按 orderId 过滤且订单归属已校验
+        if (taskPickupDispatchPushDTO != null) {
+            builder.signStatus(taskPickupDispatchPushDTO.getSignStatus());
+            builder.signRemark(taskPickupDispatchPushDTO.getSignRemark());
+            builder.signPictures(parseSignPictures(taskPickupDispatchPushDTO.getSignPictures()));
+        }
         // 运单号
         TransportOrderDTO transportOrderDTO = transportOrderFeign.findByOrderId(Long.valueOf(orderDTO.getId()));
         // 运单号面向 App 保持 String，避免 JS 精度丢失
@@ -1327,5 +1344,21 @@ public class MailingController {
      */
     private static Long parseId(String id) {
         return StringUtils.isBlank(id) ? null : Long.parseLong(id.trim());
+    }
+
+    /**
+     * 签收照片 JSON 数组字符串反序列化为 List（null/空白 -> null；解析失败打 warn 后按无照片处理，不抛异常）
+     */
+    private static List<String> parseSignPictures(String signPicturesJson) {
+        if (StringUtils.isBlank(signPicturesJson)) {
+            return null;
+        }
+        try {
+            String[] urls = SIGN_JSON_MAPPER.readValue(signPicturesJson, String[].class);
+            return urls == null ? null : new ArrayList<>(Arrays.asList(urls));
+        } catch (Exception e) {
+            log.warn("[签收凭证] 客户详情签收照片JSON解析失败，按无照片处理: {}", signPicturesJson, e);
+            return null;
+        }
     }
 }

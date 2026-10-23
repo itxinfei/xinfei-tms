@@ -35,9 +35,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.bind.annotation.*;
+import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -82,8 +84,14 @@ public class CourierController {
     private final EventPublisher eventPublisher;
     private final ExceptionReportFeign exceptionReportFeign;
 
+    /**
+     * Jackson3（tools.jackson）全局 ObjectMapper，Bean 名 jacksonJsonMapper，
+     * 与 MQ 事件发布（EventPublisher）使用同一实例；签收照片 List 序列化为 JSON 数组字符串落库
+     */
+    private final ObjectMapper jacksonJsonMapper;
 
-    public CourierController(AppCourierFeign appCourierFeign, MemberFeign memberFeign, OrgFeign orgFeign, TransportTaskFeign transportTaskFeign, TransportOrderFeign transportOrderFeign, GoodsTypeFeign goodsTypeFeign, PickupDispatchTaskFeign pickupDispatchTaskFeign, OrderFeign orderFeign, CargoFeign cargoFeign, AreaFeign areaFeign, EventPublisher eventPublisher, ExceptionReportFeign exceptionReportFeign) {
+    public CourierController(AppCourierFeign appCourierFeign, MemberFeign memberFeign, OrgFeign orgFeign, TransportTaskFeign transportTaskFeign, TransportOrderFeign transportOrderFeign, GoodsTypeFeign goodsTypeFeign, PickupDispatchTaskFeign pickupDispatchTaskFeign, OrderFeign orderFeign, CargoFeign cargoFeign, AreaFeign areaFeign, EventPublisher eventPublisher, ExceptionReportFeign exceptionReportFeign,
+                             @Qualifier("jacksonJsonMapper") ObjectMapper jacksonJsonMapper) {
         this.appCourierFeign = appCourierFeign;
         this.memberFeign = memberFeign;
         this.pickupDispatchTaskFeign = pickupDispatchTaskFeign;
@@ -96,6 +104,7 @@ public class CourierController {
         this.orgFeign = orgFeign;
         this.eventPublisher = eventPublisher;
         this.exceptionReportFeign = exceptionReportFeign;
+        this.jacksonJsonMapper = jacksonJsonMapper;
     }
 
     @SneakyThrows
@@ -479,22 +488,47 @@ public class CourierController {
     })
     @ResponseBody
     @PutMapping("delivered/{tranOrderId}/{status}")
-    public Result delivered(@PathVariable("tranOrderId") String tranOrderId, @PathVariable("status") String status) {
+    public Result delivered(@PathVariable("tranOrderId") String tranOrderId, @PathVariable("status") String status,
+                            @RequestBody(required = false) DeliveredSignDTO body) {
         log.info("妥投 运单号：{} ，{}", tranOrderId, status);
+        // 状态白名单：仅支持 "1"签收、"0"拒收，其余直接拒绝
+        if (!"1".equals(status) && !"0".equals(status)) {
+            return Result.error(400, "妥投状态只支持 1签收 0拒收");
+        }
         boolean state = "1".equals(status); // 1签收 0拒收
+        // 条件必填（跨字段校验按模块既有风格在方法开头手写，不引入校验器；@Size 契约见 DeliveredSignDTO）：
+        // 旧版 App 不带 body 时 body 为 null，同样按缺失凭证拒绝
+        if (state) {
+            if (body == null || StringUtils.isBlank(body.getSignSignature())) {
+                return Result.error(400, "签收签名不能为空");
+            }
+        } else {
+            if (body == null || StringUtils.isBlank(body.getSignRemark())) {
+                return Result.error(400, "拒收原因不能为空");
+            }
+        }
+        // 照片 URL 先剔空白元素再计数（防 null/空串落库后前端破图）；过滤后的列表供后续落库使用
+        List<String> pictureUrls = null;
+        if (body != null) {
+            if (body.getSignPictures() != null) {
+                pictureUrls = body.getSignPictures().stream()
+                        .filter(StringUtils::isNotBlank)
+                        .map(String::trim)
+                        .toList();
+                if (pictureUrls.size() > 3) {
+                    return Result.error(400, "签收照片最多3张");
+                }
+            }
+            if (StringUtils.length(body.getSignSignature()) > 500 || StringUtils.length(body.getSignRemark()) > 500) {
+                return Result.error(400, "签名或备注长度不能超过500");
+            }
+        }
+        // ===== 以下为只读查询 + 归属/幂等校验，全部通过后才允许写，避免半成功状态 =====
         // id 是运单号 扫描到的内容
         TransportOrderDTO transportOrderDto = transportOrderFeign.findById(Long.valueOf(tranOrderId));
         if (ObjectUtils.isEmpty(transportOrderDto)) {
             return Result.error(400, "运单号未找到");
         }
-        TransportOrderDTO transportOrderDtoUpdate = new TransportOrderDTO();
-        transportOrderDtoUpdate.setStatus(state ? TransportOrderStatus.RECEIVED.getCode() : TransportOrderStatus.REJECTED.getCode());
-        TransportOrderDTO tranOrderUpdateResult = transportOrderFeign.updateById(transportOrderDto.getId(), transportOrderDtoUpdate);
-        if (tranOrderUpdateResult == null) {
-            log.error("妥投失败：运单状态更新未生效 transportOrderId={}", transportOrderDto.getId());
-            return Result.error(500, "运单状态更新失败");
-        }
-        log.info("妥投 获取运单信息：{} ,{}", transportOrderDto.getId(), transportOrderDtoUpdate);
         String orderId = String.valueOf(transportOrderDto.getOrderId());
         if (StringUtils.isBlank(orderId)) {
             return Result.error(400, "运单未关联订单");
@@ -503,6 +537,28 @@ public class CourierController {
         if (ObjectUtils.isEmpty(orderDto)) {
             return Result.error(400, "订单不存在");
         }
+        TaskPickupDispatchDTO pickupDispatchTaskDto = pickupDispatchTaskFeign.findByOrderId(Long.valueOf(orderId), PickupDispatchTaskType.DISPATCH.getCode());
+        if (ObjectUtils.isEmpty(pickupDispatchTaskDto)) {
+            return Result.error(400, "派送任务不存在");
+        }
+        // 归属校验：仅任务所属快递员本人可妥投（防水平越权，与本类任务详情/任务路由接口同口径）
+        Result deny = OwnershipAssert.checkEquals(toIdString(pickupDispatchTaskDto.getCourierId()), RequestContext.getUserId(), "无权操作他人派送任务");
+        if (deny != null) {
+            return deny;
+        }
+        // 幂等守卫：已妥投（已签收/已拒收）任务拒绝重复操作，避免重复状态流转与重复交付事件（重复短信/结算）
+        if (PickupDispatchTaskStatus.COMPLETED.getCode().equals(pickupDispatchTaskDto.getStatus())) {
+            return Result.error(400, "任务已妥投，请勿重复操作");
+        }
+        // ===== 校验通过，开始三连写：运单 → 订单 → 派件任务 =====
+        TransportOrderDTO transportOrderDtoUpdate = new TransportOrderDTO();
+        transportOrderDtoUpdate.setStatus(state ? TransportOrderStatus.RECEIVED.getCode() : TransportOrderStatus.REJECTED.getCode());
+        TransportOrderDTO tranOrderUpdateResult = transportOrderFeign.updateById(transportOrderDto.getId(), transportOrderDtoUpdate);
+        if (tranOrderUpdateResult == null) {
+            log.error("妥投失败：运单状态更新未生效 transportOrderId={}", transportOrderDto.getId());
+            return Result.error(500, "运单状态更新失败");
+        }
+        log.info("妥投 获取运单信息：{} ,{}", transportOrderDto.getId(), transportOrderDtoUpdate);
         OrderDTO orderDTOUpdate = new OrderDTO();
         orderDTOUpdate.setStatus(state ? OrderStatus.RECEIVED.getCode() : OrderStatus.REJECTION.getCode());
         OrderDTO orderUpdateResult = orderFeign.updateById(orderDto.getId(), orderDTOUpdate);
@@ -511,15 +567,18 @@ public class CourierController {
             return Result.error(500, "订单状态更新失败");
         }
         log.info("妥投 修改订单状态：{} ,{}", orderDto.getId(), orderDTOUpdate);
-        TaskPickupDispatchDTO pickupDispatchTaskDto = pickupDispatchTaskFeign.findByOrderId(Long.valueOf(orderId), PickupDispatchTaskType.DISPATCH.getCode());
-        if (ObjectUtils.isEmpty(pickupDispatchTaskDto)) {
-            return Result.error(400, "派送任务不存在");
-        }
         TaskPickupDispatchDTO pickupDispatchTaskDtoUpdate = new TaskPickupDispatchDTO();
         pickupDispatchTaskDtoUpdate.setStatus(PickupDispatchTaskStatus.COMPLETED.getCode());
         pickupDispatchTaskDtoUpdate.setSignStatus(state ? PickupDispatchTaskSignStatus.RECEIVED.getCode() : PickupDispatchTaskSignStatus.REJECTION.getCode());
         pickupDispatchTaskDtoUpdate.setActualEndTime(LocalDateTime.now());
         pickupDispatchTaskDtoUpdate.setConfirmTime(LocalDateTime.now());
+        // 签收凭证持久化（B2）：照片 List 序列化为 JSON 数组字符串（null/空 -> null，不写空串），
+        // 签名图、备注空白归一为 null（防裸调传空串绕过 NOT_NULL 策略覆盖既有凭证），未传字段不覆盖原值
+        pickupDispatchTaskDtoUpdate.setSignPictures(serializeSignPictures(pictureUrls));
+        if (body != null) {
+            pickupDispatchTaskDtoUpdate.setSignSignature(StringUtils.trimToNull(body.getSignSignature()));
+            pickupDispatchTaskDtoUpdate.setSignRemark(StringUtils.trimToNull(body.getSignRemark()));
+        }
         TaskPickupDispatchDTO taskUpdateResult = pickupDispatchTaskFeign.updateById(pickupDispatchTaskDto.getId(), pickupDispatchTaskDtoUpdate);
         if (taskUpdateResult == null) {
             log.error("妥投失败：派件任务更新未生效 taskId={}", pickupDispatchTaskDto.getId());
@@ -534,7 +593,7 @@ public class CourierController {
                 orderId,
                 toIdString(transportOrderDto.getId()),
                 state,
-                null,
+                body == null ? null : StringUtils.trimToNull(body.getSignRemark()),
                 toIdString(pickupDispatchTaskDto.getId()),
                 RequestContext.getUserId()
             );
@@ -546,6 +605,17 @@ public class CourierController {
         }
 
         return Result.ok();
+    }
+
+    /**
+     * 签收照片 URL 列表序列化为 JSON 数组字符串落库；null/空列表返回 null（不写空串）。
+     * 使用 Jackson3 全局 mapper（bean 名 jacksonJsonMapper），与 MQ 事件序列化同一实例。
+     */
+    private String serializeSignPictures(List<String> signPictures) {
+        if (signPictures == null || signPictures.isEmpty()) {
+            return null;
+        }
+        return jacksonJsonMapper.writeValueAsString(signPictures);
     }
 
     /**

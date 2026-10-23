@@ -33,15 +33,26 @@ import com.xinfei.vo.work.DriverJobVo;
 import com.xinfei.vo.work.TaskPickupDispatchVo;
 import com.xinfei.vo.work.TaskTransportVo;
 import com.xinfei.vo.work.TransportOrderVo;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@Slf4j
 public class BeanUtil {
+
+    /**
+     * 签收凭证 JSON 解析专用 mapper（Jackson3，tools.jackson）。
+     * BeanUtil 为纯静态工具类不便注入容器 bean，此处持静态只读实例；
+     * 与快递员端落库序列化（jacksonJsonMapper）同为 Jackson3，读写一套口径
+     */
+    private static final ObjectMapper SIGN_JSON_MAPPER = JsonMapper.builder().build();
     public static SysUserVo parseUser2Vo(UserDTO user, RoleFeign roleFeign, OrgFeign orgFeign) {
         SysUserVo vo = new SysUserVo();
         //填充基本信息
@@ -363,6 +374,9 @@ public class BeanUtil {
         TaskPickupDispatchVo vo = new TaskPickupDispatchVo();
         BeanUtils.copyProperties(dto, vo);
         vo.setId(toStr(dto.getId()));
+        // signPictures 库中为 JSON 数组字符串（String->List 类型不同，copyProperties 不会拷贝），需手动反序列化；
+        // signSignature/signRemark 同为 String，已由上面的同名拷贝带出
+        vo.setSignPictures(parseSignPictures(dto.getSignPictures()));
         if (dto.getOrderId() != null && orderFeign != null) {
             OrderDTO orderDTO = orderFeign.findById(toStr(dto.getOrderId()));
             if (orderDTO != null) {
@@ -382,6 +396,22 @@ public class BeanUtil {
             }
         }
         return vo;
+    }
+
+    /**
+     * 签收照片 JSON 数组字符串反序列化为 List（null/空白 -> null；单条解析失败打 warn 后按无照片处理，不抛异常）
+     */
+    private static List<String> parseSignPictures(String signPicturesJson) {
+        if (StringUtils.isBlank(signPicturesJson)) {
+            return null;
+        }
+        try {
+            String[] urls = SIGN_JSON_MAPPER.readValue(signPicturesJson, String[].class);
+            return urls == null ? null : new ArrayList<>(Arrays.asList(urls));
+        } catch (Exception e) {
+            log.warn("[签收凭证] 签收照片JSON解析失败，按无照片处理: {}", signPicturesJson, e);
+            return null;
+        }
     }
 
     public static TransportOrderDTO parseTransportOrderVo2DTO(TransportOrderVo vo) {

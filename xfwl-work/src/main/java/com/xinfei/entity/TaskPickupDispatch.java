@@ -91,6 +91,21 @@ public class TaskPickupDispatch implements Serializable {
     private LocalDateTime cancelTime;
 
     /**
+     * 签收照片URL的JSON数组，最多3张
+     */
+    private String signPictures;
+
+    /**
+     * 手写签名图片URL
+     */
+    private String signSignature;
+
+    /**
+     * 签收备注/拒收原因（签收=备注，拒收 sign_status=2 时为拒收原因）
+     */
+    private String signRemark;
+
+    /**
      * 备注
      */
     private String mark;

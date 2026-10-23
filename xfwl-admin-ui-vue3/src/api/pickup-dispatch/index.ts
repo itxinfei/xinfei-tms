@@ -58,6 +58,12 @@ export interface PickupDispatchRecord {
   assignedStatus?: number;
   mark?: string;
   createTime?: string;
+  /** 签收凭证（B2，派件任务）：现场照片 URL（≤3，已烧录时间/GPS 水印） */
+  signPictures?: string[];
+  /** 手写签名图 URL（仅管理端可见，不对客户端透出） */
+  signSignature?: string;
+  /** 签收备注 / 拒收原因 */
+  signRemark?: string;
 }
 
 /** 订单维度过滤（后端在 order 子对象内取值） */

@@ -251,6 +251,38 @@
                   <el-descriptions-item label="预计完成">{{ item.task.estimatedEndTime || "-" }}</el-descriptions-item>
                   <el-descriptions-item label="实际完成">{{ item.task.actualEndTime || "-" }}</el-descriptions-item>
                   <el-descriptions-item label="备注" :span="2">{{ item.task.mark || "-" }}</el-descriptions-item>
+                  <!-- 签收凭证（B2，仅派件任务且已签收/拒收后展示，避免整排空占位） -->
+                  <template v-if="item.task.taskType === 2 && (item.task.signStatus === 1 || item.task.signStatus === 2)">
+                    <el-descriptions-item label="签收情况">{{ signStatusLabel(item.task.signStatus) }}</el-descriptions-item>
+                    <el-descriptions-item label="签收时间">{{ item.task.confirmTime || "-" }}</el-descriptions-item>
+                    <el-descriptions-item label="签收备注" :span="2">{{ item.task.signRemark || "-" }}</el-descriptions-item>
+                    <el-descriptions-item label="现场照片" :span="2">
+                      <template v-if="item.task.signPictures?.length">
+                        <el-image
+                          v-for="(url, i) in item.task.signPictures"
+                          :key="i"
+                          :src="url"
+                          fit="cover"
+                          :preview-src-list="item.task.signPictures"
+                          :initial-index="i"
+                          preview-teleported
+                          class="pod-thumb"
+                        />
+                      </template>
+                      <span v-else>-</span>
+                    </el-descriptions-item>
+                    <el-descriptions-item label="客户签名" :span="2">
+                      <el-image
+                        v-if="item.task.signSignature"
+                        :src="item.task.signSignature"
+                        fit="contain"
+                        :preview-src-list="[item.task.signSignature]"
+                        preview-teleported
+                        class="pod-sign"
+                      />
+                      <span v-else>-</span>
+                    </el-descriptions-item>
+                  </template>
                 </el-descriptions>
               </div>
             </template>
@@ -1074,6 +1106,13 @@ const statusTimeline = computed<TimelineNode[]>(() => {
   return nodes;
 });
 
+/** 签收状态（work 口径）：1已签收 2拒收 */
+function signStatusLabel(s?: number) {
+  if (s === 1) return "已签收";
+  if (s === 2) return "拒收";
+  return "-";
+}
+
 /** 详情中的取件/派件任务块 */
 const pickupDispatchBlocks = computed(() => {
   const blocks: { title: string; task: PickupDispatchTask }[] = [];
@@ -1105,6 +1144,24 @@ onMounted(loadList);
   font-size: 14px;
   font-weight: 600;
   color: var(--el-text-color-primary);
+}
+
+/* 签收凭证缩略图 */
+.pod-thumb {
+  width: 56px;
+  height: 56px;
+  margin: 0 8px 8px 0;
+  border-radius: 4px;
+  border: 1px solid var(--el-border-color-lighter);
+  cursor: pointer;
+}
+.pod-sign {
+  width: 160px;
+  height: 80px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
 }
 
 /* 复制按钮贴在编号/ID 文本之后，去除按钮自身的高度与左右内边距 */

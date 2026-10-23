@@ -109,9 +109,16 @@ export function attachmentUpload(
   })
 }
 
-// ============ 派送签收 / 拒收（仅 "1" 签收 / "0" 拒收，不收 location）============
-export function delivered(tranOrderId: string, status: string) {
-  return put(BASE_URL + '/courier/delivered/' + tranOrderId + '/' + status)
+// ============ 派送签收 / 拒收（路径 status：仅 "1" 签收 / "0" 拒收）============
+// 签收凭证（B2）：signPictures=现场照片URL数组(≤3，已烧录时间/GPS水印)、
+// signSignature=手写签名图URL（签收必填）、signRemark=签收备注/拒收原因（拒收必填）
+export interface DeliveredBody {
+  signPictures?: string[]
+  signSignature?: string
+  signRemark?: string
+}
+export function delivered(tranOrderId: string, status: string, data?: DeliveredBody) {
+  return put(BASE_URL + '/courier/delivered/' + tranOrderId + '/' + status, data)
 }
 // 入库
 export function warehousing(tranOrderId: string) {

@@ -100,6 +100,21 @@ public class TaskPickupDispatchDTO implements Serializable {
     private LocalDateTime cancelTime;
 
     /**
+     * 签收照片URL的JSON数组字符串，最多3张（与实体/表列同名，落库与聚合查询自动映射）
+     */
+    private String signPictures;
+
+    /**
+     * 手写签名图片URL
+     */
+    private String signSignature;
+
+    /**
+     * 签收备注/拒收原因（签收=备注，拒收 signStatus=2 时为拒收原因）
+     */
+    private String signRemark;
+
+    /**
      * 任务分配状态(1未分配2已分配3待人工分配)
      */
     private Integer assignedStatus;

@@ -57,6 +57,9 @@
         task_pickup_dispatch.actual_end_time,
         task_pickup_dispatch.confirm_time,
         task_pickup_dispatch.cancel_time,
+        task_pickup_dispatch.sign_pictures,
+        task_pickup_dispatch.sign_signature,
+        task_pickup_dispatch.sign_remark,
         task_pickup_dispatch.mark,
         task_pickup_dispatch.create_time
         FROM work_pickup_dispatch_task task_pickup_dispatch

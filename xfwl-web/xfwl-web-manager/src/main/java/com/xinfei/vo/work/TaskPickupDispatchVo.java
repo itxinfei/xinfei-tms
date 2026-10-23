@@ -9,6 +9,7 @@ import lombok.Data;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Schema(description = "取派件任务信息")
@@ -71,6 +72,15 @@ public class TaskPickupDispatchVo implements Serializable {
             pattern = "yyyy-MM-dd HH:mm:ss"
     )
     private LocalDateTime cancelTime;
+
+    @Schema(description = "签收照片URL列表，最多3张（库中为JSON数组字符串，出参反序列化为数组）")
+    private List<String> signPictures;
+
+    @Schema(description = "手写签名图片URL")
+    private String signSignature;
+
+    @Schema(description = "签收备注/拒收原因（签收=备注，拒收 signStatus=2 时为拒收原因）")
+    private String signRemark;
 
     @Schema(description = "任务分配状态(1未分配2已分配3待人工分配)")
     private Integer assignedStatus;

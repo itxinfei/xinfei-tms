@@ -36,6 +36,31 @@
         </view>
       </view>
 
+      <!-- 签收回单（B2：客户只见状态/备注/现场照片，手写签名仅管理端可见） -->
+      <view class="card" v-if="detail.signStatus === 1 || detail.signStatus === 2">
+        <view class="card-title">签收回单</view>
+        <view class="info-row">
+          <text class="info-label">签收情况</text>
+          <text class="info-value" :class="{ 'pod-reject': detail.signStatus === 2 }">
+            {{ detail.signStatus === 2 ? '拒收' : '已签收' }}
+          </text>
+        </view>
+        <view v-if="detail.signRemark" class="info-row">
+          <text class="info-label">{{ detail.signStatus === 2 ? '拒收原因' : '签收备注' }}</text>
+          <text class="info-value">{{ detail.signRemark }}</text>
+        </view>
+        <view v-if="detail.signPictures && detail.signPictures.length" class="pod-photos">
+          <image
+            v-for="(url, i) in detail.signPictures"
+            :key="i"
+            :src="url"
+            class="pod-img"
+            mode="aspectFill"
+            @click="previewPod(i)"
+          />
+        </view>
+      </view>
+
       <!-- 物流时间轴 -->
       <view class="card">
         <view class="card-title">物流动态</view>
@@ -151,6 +176,13 @@ const goAgain = () => {
   });
 };
 
+// 签收现场照片全屏预览（客户只见照片，不见手写签名）
+const previewPod = (index) => {
+  const urls = (detail.value && detail.value.signPictures) || [];
+  if (!urls.length) return;
+  uni.previewImage({ current: index, urls });
+};
+
 const copyOrderNo = () => {
   const no = detail.value && detail.value.tranOrderId;
   if (!no) return;
@@ -205,6 +237,19 @@ onLoad((options) => {
 .copy-btn {
   font-size: var(--f-tip);
   color: var(--c-primary);
+}
+.pod-reject { color: var(--c-danger, #ee0a24); }
+.pod-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  padding-top: 12rpx;
+}
+.pod-img {
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 12rpx;
+  background: var(--c-bg, #f7f8fa);
 }
 .route-empty {
   padding: 32rpx 0;
