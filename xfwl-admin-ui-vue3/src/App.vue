@@ -16,6 +16,7 @@ import { useRoute } from "vue-router";
 import { useAppStore, useSettingsStore, useLicenseStore } from "@/stores";
 import { appConfig } from "@/settings";
 import { ThemeMode, ComponentSize } from "@/enums";
+import { AuthStorage } from "@/utils/auth";
 import { useVersionCheck } from "@/composables/useVersionCheck";
 
 const appStore = useAppStore();
@@ -24,8 +25,12 @@ const settingsStore = useSettingsStore();
 const locale = computed(() => appStore.locale);
 const size = computed(() => appStore.size as ComponentSize);
 const licenseStore = useLicenseStore();
-// 应用启动即从后端拉取授权状态（真伪只由后端判定），失败不影响渲染
-void licenseStore.fetchStatus();
+// 应用启动即从后端拉取授权状态（真伪只由后端判定），失败不影响渲染。
+// 仅本地已登录时才发：登录页无 token，/license/status 必被网关 401，
+// 虽已标记 silentAuth 不会误弹登录过期，但无意义的请求不必发出。
+if (AuthStorage.getAccessToken()) {
+  void licenseStore.fetchStatus();
+}
 
 // 水印内容：仅在「购买商业授权」通知弹出期间对未激活实例显示「体验版」，通知关闭即消失；
 // 正常试用期不显示；已激活则回落到用户水印设置

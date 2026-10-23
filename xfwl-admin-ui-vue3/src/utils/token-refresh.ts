@@ -13,6 +13,11 @@ const HTTP_UNAUTHORIZED = 401;
 export function installTokenRefresh(http: AxiosInstance) {
   http.interceptors.response.use(undefined, async (error: AxiosError) => {
     if (error.response?.status === HTTP_UNAUTHORIZED) {
+      // 静默鉴权请求（如启动态探测授权状态）：不弹窗、不跳转，直接交业务层 catch，
+      // 否则未登录打开登录页时会被 /license/status 的 401 误踢
+      if (error.config?.silentAuth) {
+        return Promise.reject(error);
+      }
       await useUserStoreHook().redirectToLogin("expired");
       return Promise.reject(new Error("Token Invalid"));
     }

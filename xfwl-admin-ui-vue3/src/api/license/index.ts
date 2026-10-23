@@ -54,11 +54,16 @@ export interface LicenseInfo {
 const LICENSE_BASE_URL = "/api/v1/license";
 
 const LicenseAPI = {
-  /** 查询授权状态（登录态） */
+  /**
+   * 查询授权状态（登录态）。
+   * silentAuth：该接口为启动态/非关键探测请求，401（如未登录停在登录页、token 恰好过期）时
+   * 不弹"登录过期"、不跳登录页，静默失败即可；真正业务请求的 401 仍按原流程强退。
+   */
   getStatus() {
     return request<unknown, LicenseInfo>({
       url: `${LICENSE_BASE_URL}/status`,
       method: "get",
+      silentAuth: true,
     });
   },
 
