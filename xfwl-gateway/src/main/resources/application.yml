@@ -133,6 +133,10 @@ xinfei:
   security:
     # 限流阈值（次/分钟）：登录/验证码按 IP 严限，通用按 IP 兜底 + 登录用户计数
     rate-limit:
+      # dev/test 关闭限流：开发期仅少量测试人员，限流反而误伤登录/验证码/看板轮询
+      #（2026-10-23 拍板；当天曾发生计数 key 无 TTL 导致验证码永久 429 事故）。
+      # 生产上线必须置 true（T-SEC-01），经 Nacos xfwl-gateway.yml 覆盖并收紧阈值。
+      enabled: false
       # dev 演示口径（办公室 NAT 同出口 IP 多人共用，过严会误伤正常登录/看板轮询）；
       # 生产上线经 Nacos 收紧为 login 5 / captcha 10 / user 300 / ip 2000
       login-per-minute: 30     # /api/auth/anno/login（防撞库）

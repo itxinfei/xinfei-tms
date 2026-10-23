@@ -7,12 +7,14 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import java.time.Duration;
+import java.util.List;
 
 /**
  * 网关限流过滤器（T-SEC-01/A1，覆盖 69 号文档 A1 / A19 兜底）
@@ -31,6 +33,9 @@ import java.time.Duration;
  * <p>超限统一 429 JSON（含 retryAfter）；Redis 异常 fail-open（告警日志，不阻断业务——
  * 限流是防御项，不能反过来成为单点故障）。阈值经 yml/Nacos 可调（禁硬编码纪律）。</p>
  *
+ * <p>总开关 {@code xinfei.security.rate-limit.enabled}（缺省 true）：dev/test 显式置 false
+ * 整体关闭（2026-10-23 拍板：开发期仅少量测试人员，限流误伤登录/验证码/轮询）；生产必须打开。</p>
+ *
  * <p>order=-250：晚于 RequestSanitizeFilter(-300)（真实 IP 已就绪）、SecurityHeadersFilter(-260)
  * （安全头已设置），早于 ForwardSameTokenFilter(-100)。</p>
  */
@@ -40,7 +45,29 @@ public class RateLimitFilter implements GlobalFilter, Ordered {
 
     private static final String ATTR_USER_ID = "gateway.userId";
 
+    /** 计数窗口过期秒数：60s 窗口 + 10s 冗余 */
+    private static final long WINDOW_TTL_SECONDS = 70L;
+
+    /**
+     * 原子自增并保证计数 key 必有 TTL：INCR 后若 TTL &lt; 0（-1 表示 key 存在但无过期时间，
+     * 历史脏数据/异常重建可能产生），立即补设过期，杜绝计数 key 永不过期把某 IP/用户永久锁死
+     * （2026-10-23 实测 captcha key TTL=-1、计数只增不减，验证码接口被永久 429 的事故根因）。
+     * KEYS[1]=计数 key；ARGV[1]=过期秒数；返回自增后的计数。
+     */
+    private static final RedisScript<Long> INCR_ENSURE_TTL = new DefaultRedisScript<>(
+            "local c = redis.call('INCR', KEYS[1]); "
+          + "if redis.call('TTL', KEYS[1]) < 0 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end; "
+          + "return c;", Long.class);
+
     private final ReactiveStringRedisTemplate redis;
+
+    /**
+     * 限流总开关，缺省打开（安全默认：任何未显式配置的环境都受保护）。
+     * dev/test 经 application.yml 显式置 false 关闭（仅少量测试人员，限流会误伤登录/验证码/看板轮询）；
+     * 生产上线必须置 true（T-SEC-01）。关闭时直接放行、不产生任何 Redis 计数 key。
+     */
+    @Value("${xinfei.security.rate-limit.enabled:true}")
+    private boolean rateLimitEnabled;
 
     // dev 演示口径（办公室 NAT 多人共用出口 IP，防误伤正常业务）；生产经 Nacos 收紧
     @Value("${xinfei.security.rate-limit.login-per-minute:30}")
@@ -61,6 +88,10 @@ public class RateLimitFilter implements GlobalFilter, Ordered {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        // dev/test 总开关关闭：直接放行，不读 Redis、不产生计数 key
+        if (!rateLimitEnabled) {
+            return chain.filter(exchange);
+        }
         // CORS 预检不计数
         if (HttpMethod.OPTIONS.equals(exchange.getRequest().getMethod())) {
             return chain.filter(exchange);
@@ -114,15 +145,13 @@ public class RateLimitFilter implements GlobalFilter, Ordered {
     }
 
     /**
-     * 单计数器自增并判断是否超限；首次自增设置 70s 过期（窗口 60s + 冗余）。
+     * 单计数器自增并判断是否超限；Lua 原子保证计数 key 必有过期（正常首次即设，无 TTL 脏 key 自愈补设）。
      * Redis 异常 fail-open 放行并告警。
      */
     private Mono<Boolean> incrementAndCheck(Counter counter) {
         String key = "xinfei:rl:" + counter.scope() + ":" + counter.key();
-        return redis.opsForValue().increment(key)
-                .flatMap(v -> v == 1L
-                        ? redis.expire(key, Duration.ofSeconds(70)).thenReturn(v)
-                        : Mono.just(v))
+        return redis.execute(INCR_ENSURE_TTL, List.of(key), String.valueOf(WINDOW_TTL_SECONDS))
+                .next()
                 .map(v -> v <= counter.limit())
                 .onErrorResume(e -> {
                     log.warn("[限流] Redis 计数异常，fail-open 放行: key={}, reason={}", key, e.getMessage());

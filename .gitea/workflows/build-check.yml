@@ -196,10 +196,18 @@ jobs:
             if [ -z "$f" ]; then continue; fi
             case "$f" in
               deploy/*|.gitea/*) other=1; continue ;;
+              # 任意 pom.xml（含根 pom）变更可能影响依赖/父结构，保守触发后端全量
+              pom.xml|*/pom.xml) lib=1; continue ;;
+              # 纯前端/文档变更与后端无关：不得因找不到 pom.xml 而 other=1，否则任何移动端/管理端
+              # 提交都会误触发 14 后端全量滚动（2026-10-23 实测纯前端 push 被全量部署的根因）。
+              # 受影响端由下面的「前端归属」循环精确识别 APPS；docs 纯文档不部署任何东西。
+              xfwl-admin-ui-vue3/*|xfwl-mobile/*|docs/*) continue ;;
             esac
             d=$(dirname "$f")
             while [ "$d" != "." ] && [ ! -f "$d/pom.xml" ]; do d=$(dirname "$d"); done
-            if [ "$d" = "." ]; then other=1; continue; fi
+            # 走到这里仍找不到 pom.xml 的根级杂项文件（README/.gitignore 等）不判定后端范围，
+            # 仅当确有 deploy/.gitea（编排）或共享库变更时才全量
+            if [ "$d" = "." ]; then continue; fi
             hit=""
             for s in $ORDER; do
               if [ "${MOD_OF[$s]}" = "$d" ]; then hit=$s; break; fi
