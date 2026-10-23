@@ -53,12 +53,13 @@ export function totalPrice(data: any) {
   return post(BASE_URL + '/courier/totalPrice', data)
 }
 
-// ============ 附件上传（multipart，业务标识 businessType=courier）============
-// 返回 Object（附件 id/url），照片/签名禁 base64 直塞业务请求体
+// ============ 附件上传（multipart，业务标识 bizType=courier）============
+// 统一返回 { id, url }（id 即可匿名访问的 view URL 字符串，file-server 无元数据/无独立附件 id）；
+// 异常上报 attachmentIds 取该值。照片/签名禁 base64 直塞业务请求体
 export function attachmentUpload(
   filePath: string,
-  businessType = 'courier'
-): Promise<any> {
+  bizType = 'courier'
+): Promise<{ id: string; url: string }> {
   const token = uni.getStorageSync(TOKEN_KEY)
   const header: Record<string, string> = {}
   if (token) header[TOKEN_HEADER] = token
@@ -67,7 +68,9 @@ export function attachmentUpload(
       url: BASE_URL + '/attachment/upload',
       filePath,
       name: 'file',
-      formData: { businessType },
+      // web-courier BFF 只取 file、bizType 服务端硬编码 "courier"，formData 当前不被消费；
+      // 仍按 file-server 真实入参名 bizType 传递，兼容日后直传
+      formData: { bizType },
       header,
       success: (res) => {
         // token 过期：清 token 回登录页（与 request 封装一致；文件上传不走 request 封装）
@@ -83,8 +86,14 @@ export function attachmentUpload(
             reject(new Error('登录已过期'))
             return
           }
-          if (body.code === 0 || body.code === undefined) resolve(body.data)
-          else {
+          if (body.code === 0 || body.code === undefined) {
+            // file-server 为无元数据纯文件存储，data 直接是可匿名访问的 view URL（无独立附件 id）。
+            // 统一规整为 { id, url }：id 取该 URL——异常上报 attachmentIds 非空校验/凭证留痕用的就是它，
+            // 签收等场景亦以此 URL 作为凭证值。兼容后端日后返回对象的形态。
+            const d = body.data
+            const url = typeof d === 'string' ? d : d?.url || ''
+            resolve({ id: url, url })
+          } else {
             uni.showToast({ title: body.msg || '上传失败', icon: 'none' })
             reject(new Error(body.msg || '上传失败'))
           }
