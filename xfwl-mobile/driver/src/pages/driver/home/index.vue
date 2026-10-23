@@ -64,6 +64,7 @@ import {
   cargoOnTheWay,
   cargoHistory,
   locationPush,
+  userProfile,
 } from '@/common/api/driver'
 import { useUserStore } from '@/common/store/user'
 import { maskName } from '@/common/utils/desensitive'
@@ -74,6 +75,8 @@ const userInfo = computed(() => userStore.userInfo)
 const waitCount = ref(0)
 const onTheWayCount = ref(0)
 const doneCount = ref(0)
+// 当前在途任务关联车辆 id：后端无司机-车辆常驻绑定，车辆随运输任务走（/user/profile.truckId）
+const truckId = ref('')
 
 // ============ 定位上报 ============
 const reporting = ref(false)
@@ -138,8 +141,19 @@ function goHistory() {
   uni.navigateTo({ url: '/pages/driver/task/history' })
 }
 
-function goCar() {
-  uni.navigateTo({ url: '/pages/driver/car/info' })
+// 车辆信息：带在途任务关联的车辆 id；无在途任务也跳，由信息页空态承接
+async function goCar() {
+  let id = truckId.value
+  if (!id) {
+    // 兜底：应对 onShow 预取失败或进首页后立即点击
+    try {
+      const p = await userProfile()
+      id = p?.truckId || ''
+    } catch (e) {
+      id = ''
+    }
+  }
+  uni.navigateTo({ url: '/pages/driver/car/info' + (id ? '?id=' + id : '') })
 }
 
 // ============ 计数加载 ============
@@ -168,7 +182,20 @@ async function loadCount() {
   }
 }
 
-onShow(() => loadCount())
+// 预取在途任务关联车辆 id（失败不阻塞首页，点击入口时还会兜底再取）
+async function loadTruck() {
+  try {
+    const p = await userProfile()
+    truckId.value = p?.truckId || ''
+  } catch (e) {
+    truckId.value = ''
+  }
+}
+
+onShow(() => {
+  loadCount()
+  loadTruck()
+})
 onUnmounted(() => {
   if (timer) clearInterval(timer)
 })

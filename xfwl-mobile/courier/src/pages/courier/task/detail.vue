@@ -48,11 +48,14 @@
       <view class="addr-row"><text class="addr-key">金额</text><text class="addr-val amount">{{ detail.amount != null ? '¥' + detail.amount : '—' }}</text></view>
     </view>
 
-    <!-- 路由时间轴 -->
-    <view class="card route-card" v-if="routeList.length">
-      <text class="addr-title">路由轨迹</text>
+    <!-- 路由时间轴（标题常驻：无节点也可进地图看实时位置） -->
+    <view class="card route-card">
+      <view class="route-head">
+        <text class="addr-title" style="margin-bottom: 0">路由轨迹</text>
+        <text class="route-entry" @click="goRoute">地图路线 ›</text>
+      </view>
       <!-- 修改点：uview-plus 无 u-time-line 组件，改用普通 view + CSS 时间轴 -->
-      <view class="tl">
+      <view class="tl" v-if="routeList.length">
         <view class="tl-row" v-for="(node, idx) in routeList" :key="idx">
           <view class="tl-dot"></view>
           <view class="route-node">
@@ -61,6 +64,7 @@
           </view>
         </view>
       </view>
+      <text v-else class="route-empty">暂无路由节点，可进地图查看实时位置</text>
     </view>
   </view>
 
@@ -70,6 +74,7 @@
     <u-button type="success" text="入库" shape="circle" @click="goWarehousing"></u-button>
     <u-button type="warning" text="交接" shape="circle" @click="goHandover"></u-button>
     <u-button type="info" text="核验" shape="circle" @click="goVerify"></u-button>
+    <u-button type="error" text="异常上报" shape="circle" @click="goException"></u-button>
   </view>
 </template>
 
@@ -148,6 +153,22 @@ function goVerify() {
   uni.navigateTo({
     url: '/pages/courier/task/verify?orderNumber=' + (detail.value?.orderNumber || ''),
   })
+}
+// 异常上报：tranOrderId 优先，任务 id 作为 transportTaskId 兜底（report 页三参容错）
+function goException() {
+  uni.navigateTo({
+    url:
+      '/pages/courier/exception/report?tranOrderId=' +
+      (detail.value?.tranOrderId || id.value) +
+      '&orderNumber=' +
+      encodeURIComponent(detail.value?.orderNumber || '') +
+      '&transportTaskId=' +
+      id.value,
+  })
+}
+// 配送路线：route 页按任务 id 取节点 + 10s 轮询实时位置
+function goRoute() {
+  uni.navigateTo({ url: '/pages/courier/task/route?id=' + id.value })
 }
 
 // 联系客户（展示脱敏，拨号用原值，《70》§3.3）
@@ -231,6 +252,22 @@ onLoad((options: any) => {
 .addr-val.amount {
   color: var(--c-error);
   font-weight: bold;
+}
+.route-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--s-2);
+}
+.route-entry {
+  font-size: var(--f-aux);
+  color: var(--c-primary);
+}
+.route-empty {
+  display: block;
+  font-size: var(--f-tip);
+  color: var(--c-text-3);
+  padding: var(--s-1) 0;
 }
 .route-node {
   display: flex;

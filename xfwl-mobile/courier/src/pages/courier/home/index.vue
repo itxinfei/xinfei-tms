@@ -41,7 +41,7 @@
         <view class="entry-icon"><u-icon name="list" size="40" color="var(--c-primary)"></u-icon></view>
         <text class="entry-text">我的任务</text>
       </view>
-      <view class="entry" @click="goTab('pages/courier/stats/index')">
+      <view class="entry" @click="goStats">
         <view class="entry-icon"><u-icon name="rmb" size="40" color="var(--c-primary)"></u-icon></view>
         <text class="entry-text">绩效统计</text>
       </view>
@@ -67,6 +67,11 @@ const dispatchCount = ref(0)
 
 function goTab(path: string) {
   uni.switchTab({ url: '/' + path })
+}
+
+// 绩效统计不是 tabBar 页，switchTab 不可达，走 navigateTo
+function goStats() {
+  uni.navigateTo({ url: '/pages/courier/stats/index' })
 }
 
 // 扫码接单：解析运单号后跳详情

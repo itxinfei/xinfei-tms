@@ -74,8 +74,20 @@ async function loadProfile() {
   }
 }
 
-function goCarInfo() {
-  uni.navigateTo({ url: '/pages/driver/car/info' })
+// 我的车辆：带在途任务关联的车辆 id；无在途任务也跳，由信息页空态承接
+async function goCarInfo() {
+  let id = profile.value?.truckId || ''
+  if (!id) {
+    // 兜底：onShow 预取失败时点击再取一次
+    try {
+      const p = await userProfile()
+      profile.value = p || {}
+      id = p?.truckId || ''
+    } catch (e) {
+      id = ''
+    }
+  }
+  uni.navigateTo({ url: '/pages/driver/car/info' + (id ? '?id=' + id : '') })
 }
 
 function onLogout() {
