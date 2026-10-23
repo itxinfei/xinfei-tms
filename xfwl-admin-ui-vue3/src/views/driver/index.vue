@@ -39,8 +39,20 @@
           <el-table-column label="车队" min-width="120" show-overflow-tooltip>
             <template #default="scope">{{ scope.row.fleet?.name || "-" }}</template>
           </el-table-column>
-          <el-table-column label="使用车辆" min-width="110" show-overflow-tooltip>
-            <template #default="scope">{{ scope.row.truck?.licensePlate || "-" }}</template>
+          <el-table-column label="使用车辆" min-width="140">
+            <template #default="scope">
+              <template v-if="scope.row.truck?.licensePlate">
+                <span>{{ scope.row.truck.licensePlate }}</span>
+                <el-tag
+                  :type="scope.row.truck.onlineStatus === 1 ? 'success' : 'info'"
+                  size="small"
+                  class="truck-online-tag"
+                >
+                  {{ scope.row.truck.onlineStatus === 1 ? "在线" : "离线" }}
+                </el-tag>
+              </template>
+              <span v-else>-</span>
+            </template>
           </el-table-column>
           <el-table-column label="线路" min-width="160" show-overflow-tooltip>
             <template #default="scope">{{ scope.row.transportLine?.name || scope.row.truckTransportLine?.name || "-" }}</template>
@@ -168,6 +180,9 @@
         <el-form-item label="入场证信息">
           <el-input v-model="editForm.passCertificate" placeholder="请输入入场证信息" maxlength="30" />
         </el-form-item>
+        <el-form-item label="证件图片">
+          <SingleImageUpload v-model="editForm.picture" />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="editVisible = false">取消</el-button>
@@ -273,6 +288,8 @@ interface DriverEditForm {
   validPeriod?: string;
   qualificationCertificate?: string;
   passCertificate?: string;
+  /** 驾驶证/证件图片 URL（文件服务直传后随驾驶证 upsert） */
+  picture?: string;
 }
 
 const editVisible = ref(false);
@@ -312,6 +329,7 @@ async function openEdit(row: DriverRecord) {
       validPeriod: licenseRes?.validPeriod,
       qualificationCertificate: licenseRes?.qualificationCertificate,
       passCertificate: licenseRes?.passCertificate,
+      picture: licenseRes?.picture,
     };
   } finally {
     editLoading.value = false;
@@ -339,6 +357,8 @@ async function handleSaveEdit() {
       validPeriod: form.validPeriod,
       qualificationCertificate: form.qualificationCertificate,
       passCertificate: form.passCertificate,
+      // 空串可清空既有图片；undefined 会被 JSON 省略导致后端不更新该列
+      picture: form.picture?.trim() ?? "",
     });
     ElMessage.success("保存成功");
     editVisible.value = false;
@@ -350,6 +370,11 @@ async function handleSaveEdit() {
 </script>
 
 <style lang="scss" scoped>
+/* 使用车辆列：车牌与在线标签并排，留 6px 间距 */
+.truck-online-tag {
+  margin-left: 6px;
+}
+
 /* 司机详情抽屉：容器作为 loading 遮罩定位上下文；区块留白；自定义标题；证件图片尺寸约束 */
 .driver-detail {
   position: relative;

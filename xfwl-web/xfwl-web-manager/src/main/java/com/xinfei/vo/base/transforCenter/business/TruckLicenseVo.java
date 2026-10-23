@@ -15,11 +15,11 @@ public class TruckLicenseVo implements Serializable {
     private TruckVo truck;
     @Schema(description = "发动机编号")
     private String engineNumber;
-    @Schema(description = "注册时间,格式:yyyy-MM-dd HH:mm:ss")
+    @Schema(description = "注册时间,格式:yyyy-MM-dd")
     private String registrationDate;
-    @Schema(description = "国家强制报废日期,格式:yyyy-MM-dd HH:mm:ss")
+    @Schema(description = "国家强制报废日期,格式:yyyy-MM-dd")
     private String mandatoryScrap;
-    @Schema(description = "检验有效期,格式:yyyy-MM-dd HH:mm:ss")
+    @Schema(description = "检验有效期,格式:yyyy-MM-dd")
     private String expirationDate;
     @Schema(description = "整备质量")
     private BigDecimal overallQuality;
@@ -27,7 +27,7 @@ public class TruckLicenseVo implements Serializable {
     private BigDecimal allowableWeight;
     @Schema(description = "外廓尺寸")
     private String outsideDimensions;
-    @Schema(description = "行驶证有效期,格式:yyyy-MM-dd HH:mm:ss")
+    @Schema(description = "行驶证有效期,格式:yyyy-MM-dd")
     private String validityPeriod;
     @Schema(description = "道路运输证号")
     private String transportCertificateNumber;

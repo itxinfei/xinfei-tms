@@ -78,6 +78,8 @@ export interface Truck {
   allowableLoad?: number;
   allowableVolume?: number;
   deviceGpsId?: string;
+  /** 在线状态：0-离线 1-在线（司机分页嵌套车辆时透出） */
+  onlineStatus?: number;
 }
 
 /** 运输任务列表项字段 */

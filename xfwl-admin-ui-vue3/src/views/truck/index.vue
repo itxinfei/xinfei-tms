@@ -64,6 +64,16 @@
           <el-table-column prop="deviceGpsId" label="GPS 设备" min-width="120" show-overflow-tooltip>
             <template #default="scope">{{ scope.row.deviceGpsId || "-" }}</template>
           </el-table-column>
+          <el-table-column label="在线状态" min-width="130" align="center">
+            <template #default="scope">
+              <el-tag :type="scope.row.onlineStatus === 1 ? 'success' : 'info'" size="small">
+                {{ scope.row.onlineStatus === 1 ? "在线" : "离线" }}
+              </el-tag>
+              <div v-if="scope.row.lastHeartbeatTime" class="online-cell__time">
+                心跳 {{ formatHeartbeat(scope.row.lastHeartbeatTime) }}
+              </div>
+            </template>
+          </el-table-column>
           <el-table-column label="操作" fixed="right" width="150" align="center">
             <template #default="scope">
               <el-button type="primary" link size="small" @click="openDetail(scope.row as TruckRecord)">详情</el-button>
@@ -89,8 +99,8 @@
     </el-card>
 
     <!-- 新增/编辑弹窗 -->
-    <el-dialog v-model="formVisible" :title="formTitle" width="560px" @closed="resetForm">
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
+    <el-dialog v-model="formVisible" :title="formTitle" width="680px" @closed="resetForm">
+      <el-form v-loading="formLoading" ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="车牌" prop="licensePlate">
           <el-input v-model="form.licensePlate" placeholder="请输入车牌" maxlength="20" />
         </el-form-item>
@@ -141,6 +151,87 @@
             placeholder="选填"
             style="width: 100%"
           />
+        </el-form-item>
+
+        <el-divider content-position="left">行驶证信息（选填）</el-divider>
+        <div class="license-tip">日期与整备/核定载质量留空保存不会清除原值；如需修改请填写完整后保存。</div>
+        <el-form-item label="道路运输证号">
+          <el-input
+            v-model="form.license.transportCertificateNumber"
+            placeholder="选填，请输入道路运输证号"
+            maxlength="32"
+          />
+        </el-form-item>
+        <el-form-item label="发动机编号">
+          <el-input v-model="form.license.engineNumber" placeholder="选填，请输入发动机编号" maxlength="32" />
+        </el-form-item>
+        <el-form-item label="注册时间">
+          <el-date-picker
+            v-model="form.license.registrationDate"
+            type="date"
+            value-format="YYYY-MM-DD"
+            placeholder="选择注册时间"
+            style="width: 220px"
+          />
+        </el-form-item>
+        <el-form-item label="强制报废日期">
+          <el-date-picker
+            v-model="form.license.mandatoryScrap"
+            type="date"
+            value-format="YYYY-MM-DD"
+            placeholder="选择强制报废日期"
+            style="width: 220px"
+          />
+        </el-form-item>
+        <el-form-item label="检验有效期">
+          <el-date-picker
+            v-model="form.license.expirationDate"
+            type="date"
+            value-format="YYYY-MM-DD"
+            placeholder="选择检验有效期"
+            style="width: 220px"
+          />
+        </el-form-item>
+        <el-form-item label="行驶证有效期">
+          <el-date-picker
+            v-model="form.license.validityPeriod"
+            type="date"
+            value-format="YYYY-MM-DD"
+            placeholder="选择行驶证有效期"
+            style="width: 220px"
+          />
+        </el-form-item>
+        <el-form-item label="整备质量(kg)">
+          <el-input-number
+            v-model="form.license.overallQuality"
+            :precision="0"
+            :min="0"
+            :step="100"
+            controls-position="right"
+            placeholder="选填"
+            style="width: 220px"
+          />
+        </el-form-item>
+        <el-form-item label="核定载质量(kg)">
+          <el-input-number
+            v-model="form.license.allowableWeight"
+            :precision="0"
+            :min="0"
+            :step="100"
+            controls-position="right"
+            placeholder="选填"
+            style="width: 220px"
+          />
+        </el-form-item>
+        <el-form-item label="外廓尺寸">
+          <el-input
+            v-model="form.license.outsideDimensions"
+            placeholder="选填，如 6900×2500×3200mm"
+            maxlength="50"
+          />
+        </el-form-item>
+        <el-form-item label="证件图片">
+          <SingleImageUpload v-model="form.license.picture" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -253,7 +344,27 @@ function formatLoadT(kg?: number): string | number {
   return Number((kg / 1000).toFixed(3));
 }
 
-/** 新增/编辑弹窗 */
+/** 心跳时间展示：兼容全局 "yyyy-MM-dd HH:mm:ss" 与 ISO（含 T）两种序列化形态，精确到分钟 */
+function formatHeartbeat(raw?: string): string {
+  if (!raw) return "";
+  return raw.replace("T", " ").slice(0, 16);
+}
+
+/** 行驶证表单（随车辆一起保存，字段全部选填） */
+interface TruckLicenseForm {
+  engineNumber: string;
+  transportCertificateNumber: string;
+  registrationDate: string;
+  mandatoryScrap: string;
+  expirationDate: string;
+  validityPeriod: string;
+  overallQuality?: number;
+  allowableWeight?: number;
+  outsideDimensions: string;
+  picture: string;
+}
+
+/** 新增/编辑弹窗表单 */
 interface TruckForm {
   licensePlate: string;
   brand: string;
@@ -264,12 +375,30 @@ interface TruckForm {
   allowableLoadT?: number;
   /** 准载体积，单位 m³ */
   allowableVolume?: number;
+  license: TruckLicenseForm;
 }
 
 const formVisible = ref(false);
 const saving = ref(false);
+/** 编辑弹窗详情/证照加载遮罩 */
+const formLoading = ref(false);
 const editingId = ref<string>();
+/** 编辑车辆是否已绑行驶证：已绑则即使表单证照全空也提交（支撑清空/纠正场景） */
+const licenseExist = ref(false);
 const formRef = ref<FormInstance>();
+
+const createDefaultLicenseForm = (): TruckLicenseForm => ({
+  engineNumber: "",
+  transportCertificateNumber: "",
+  registrationDate: "",
+  mandatoryScrap: "",
+  expirationDate: "",
+  validityPeriod: "",
+  overallQuality: undefined,
+  allowableWeight: undefined,
+  outsideDimensions: "",
+  picture: "",
+});
 
 const createDefaultForm = (): TruckForm => ({
   licensePlate: "",
@@ -279,8 +408,25 @@ const createDefaultForm = (): TruckForm => ({
   fleetId: undefined,
   allowableLoadT: undefined,
   allowableVolume: undefined,
+  license: createDefaultLicenseForm(),
 });
 const form = reactive<TruckForm>(createDefaultForm());
+
+/** 证照表单是否存在任一有效输入（避免给从未录过证照的新车插一条全空记录） */
+function hasLicenseData(data: TruckLicenseForm): boolean {
+  return (
+    data.engineNumber.trim() !== "" ||
+    data.transportCertificateNumber.trim() !== "" ||
+    data.registrationDate !== "" ||
+    data.mandatoryScrap !== "" ||
+    data.expirationDate !== "" ||
+    data.validityPeriod !== "" ||
+    data.outsideDimensions.trim() !== "" ||
+    data.picture !== "" ||
+    data.overallQuality !== undefined ||
+    data.allowableWeight !== undefined
+  );
+}
 
 const rules: FormRules<TruckForm> = {
   licensePlate: [{ required: true, message: "请输入车牌", trigger: "blur" }],
@@ -290,26 +436,55 @@ const formTitle = computed(() => (editingId.value ? "编辑车辆" : "新增车�
 
 function openCreate() {
   editingId.value = undefined;
+  licenseExist.value = false;
+  formLoading.value = false;
   Object.assign(form, createDefaultForm());
   formVisible.value = true;
 }
 
 async function openEdit(row: TruckRecord) {
-  // 编辑前拉详情：列表项不含 GPS/品牌可能被截断，且需外键对象的 id 回填下拉
-  const detail = await TruckAPI.getDetail(row.id);
+  // 先开窗再加载（与司机页一致）：请求期间展示 loading，失败关窗，避免点了按钮毫无反馈
   editingId.value = row.id;
-  Object.assign(form, createDefaultForm(), {
-    licensePlate: detail.licensePlate ?? "",
-    brand: detail.brand ?? "",
-    deviceGpsId: detail.deviceGpsId ?? "",
-    truckTypeId: detail.truckType?.id,
-    fleetId: detail.fleet?.id,
-    allowableLoadT: detail.allowableLoad !== null && detail.allowableLoad !== undefined
-      ? Number((detail.allowableLoad / 1000).toFixed(3))
-      : undefined,
-    allowableVolume: detail.allowableVolume ?? undefined,
-  });
+  licenseExist.value = false;
+  Object.assign(form, createDefaultForm());
   formVisible.value = true;
+  formLoading.value = true;
+  try {
+    // 编辑前拉详情+行驶证：列表项不含 GPS/品牌可能被截断，且需外键对象的 id 与证照数据回填
+    const [detail, licenseDetail] = await Promise.all([
+      TruckAPI.getDetail(row.id),
+      TruckAPI.getLicense(row.id),
+    ]);
+    licenseExist.value = Boolean(licenseDetail?.id);
+    Object.assign(form, createDefaultForm(), {
+      licensePlate: detail.licensePlate ?? "",
+      brand: detail.brand ?? "",
+      deviceGpsId: detail.deviceGpsId ?? "",
+      truckTypeId: detail.truckType?.id,
+      fleetId: detail.fleet?.id,
+      allowableLoadT: detail.allowableLoad !== null && detail.allowableLoad !== undefined
+        ? Number((detail.allowableLoad / 1000).toFixed(3))
+        : undefined,
+      allowableVolume: detail.allowableVolume ?? undefined,
+      license: {
+        engineNumber: licenseDetail?.engineNumber ?? "",
+        transportCertificateNumber: licenseDetail?.transportCertificateNumber ?? "",
+        registrationDate: licenseDetail?.registrationDate ?? "",
+        mandatoryScrap: licenseDetail?.mandatoryScrap ?? "",
+        expirationDate: licenseDetail?.expirationDate ?? "",
+        validityPeriod: licenseDetail?.validityPeriod ?? "",
+        overallQuality: licenseDetail?.overallQuality,
+        allowableWeight: licenseDetail?.allowableWeight,
+        outsideDimensions: licenseDetail?.outsideDimensions ?? "",
+        picture: licenseDetail?.picture ?? "",
+      },
+    });
+  } catch {
+    // 错误原因请求拦截器已统一弹消息；加载失败关闭弹窗，避免在空白表单上误提交
+    formVisible.value = false;
+  } finally {
+    formLoading.value = false;
+  }
 }
 
 async function handleSubmit() {
@@ -318,6 +493,8 @@ async function handleSubmit() {
     return;
   }
   saving.value = true;
+  // 本次提交是否走了"新建车辆"分支：catch 中据此区分"车已建成、证照失败"的可重试场景
+  let truckCreated = false;
   try {
     // 选填字段清空必须端到端落 null：显式传 null（实体 FieldStrategy.ALWAYS 才会更新为 NULL）
     const payload: TruckSavePayload = {
@@ -334,15 +511,45 @@ async function handleSubmit() {
       allowableVolume:
         form.allowableVolume === undefined || form.allowableVolume === null ? null : form.allowableVolume,
     };
+    let truckId: string;
     if (editingId.value) {
       await TruckAPI.update(editingId.value, payload);
-      ElMessage.success("更新成功");
+      truckId = editingId.value;
     } else {
-      await TruckAPI.save(payload);
-      ElMessage.success("新增成功");
+      // 行驶证 upsert 依赖车辆 id：先建车拿到 id，再存证照（后端首次保存会回填 truckLicenseId 关联）
+      const created = await TruckAPI.save(payload);
+      truckId = created.id;
+      // 建车成功立即切编辑态：随后证照保存若失败，重试走 update 幂等路径，不会重复建车
+      editingId.value = created.id;
+      truckCreated = true;
     }
+    // 已绑证照（允许纠正/清空）或本次填了证照内容才调用，避免新车挂一条全空行驶证
+    if (licenseExist.value || hasLicenseData(form.license)) {
+      // 字符串 trim 后提交（空串可清空）；日期/数字留空则省略，受后端更新策略保护保留原值
+      const licensePayload: TruckLicenseRecord = {
+        engineNumber: form.license.engineNumber.trim(),
+        transportCertificateNumber: form.license.transportCertificateNumber.trim(),
+        registrationDate: form.license.registrationDate || undefined,
+        mandatoryScrap: form.license.mandatoryScrap || undefined,
+        expirationDate: form.license.expirationDate || undefined,
+        validityPeriod: form.license.validityPeriod || undefined,
+        overallQuality: form.license.overallQuality,
+        allowableWeight: form.license.allowableWeight,
+        outsideDimensions: form.license.outsideDimensions.trim(),
+        picture: form.license.picture.trim(),
+      };
+      await TruckAPI.saveLicense(truckId, licensePayload);
+    }
+    ElMessage.success(truckCreated ? "新增成功" : "更新成功");
     formVisible.value = false;
     loadList();
+  } catch {
+    if (truckCreated) {
+      // 车辆主体已建成（弹窗已切编辑态）：证照失败后直接重试即可，不产生重复车辆
+      ElMessage.warning("车辆已创建，行驶证信息未保存成功，请修改后直接重试");
+      loadList();
+    }
+    // 其余错误原因请求拦截器已统一弹消息，弹窗保留供修改重试
   } finally {
     saving.value = false;
   }
@@ -352,6 +559,8 @@ function resetForm() {
   formRef.value?.resetFields();
   Object.assign(form, createDefaultForm());
   editingId.value = undefined;
+  licenseExist.value = false;
+  formLoading.value = false;
 }
 
 async function handleDelete(row: TruckRecord) {
@@ -409,6 +618,22 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+/* 行驶证区分隔线下方的留空说明（后端证照更新为 NOT_NULL 策略，留空不改原值） */
+.license-tip {
+  margin: -8px 0 12px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+}
+
+/* 在线状态列：标签下方心跳时间弱化展示 */
+.online-cell__time {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--el-text-color-secondary);
+}
+
 /* 车辆详情抽屉：容器作为 loading 遮罩定位上下文；区块留白；自定义标题；证件图片尺寸约束 */
 .truck-detail {
   position: relative;

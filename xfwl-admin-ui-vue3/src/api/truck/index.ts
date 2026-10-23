@@ -23,6 +23,10 @@ export interface TruckRecord {
   workStatus?: string;
   expireStatus?: string;
   loadStatus?: string;
+  /** 在线状态：0-离线 1-在线（北斗/GPS 心跳维护，分页与详情均返回） */
+  onlineStatus?: number;
+  /** 最后心跳时间（后端 LocalDateTime 序列化字符串） */
+  lastHeartbeatTime?: string;
 }
 
 /** 车辆行驶证信息 */
@@ -91,6 +95,14 @@ const TruckAPI = {
     return request<unknown, TruckLicenseRecord>({
       url: `${TRUCK_BASE_URL}/${id}/license`,
       method: "get",
+    });
+  },
+  /** 保存车辆行驶证（按车辆 upsert：车辆已绑证照则更新，否则新增并回填关联） */
+  saveLicense(id: string, data: TruckLicenseRecord) {
+    return request<unknown, TruckLicenseRecord>({
+      url: `${TRUCK_BASE_URL}/${id}/license`,
+      method: "post",
+      data,
     });
   },
   /** 新增车辆 */

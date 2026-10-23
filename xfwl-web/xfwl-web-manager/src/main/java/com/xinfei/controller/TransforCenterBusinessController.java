@@ -7,6 +7,7 @@ import com.xinfei.DTO.transportline.TransportLineDto;
 import com.xinfei.DTO.transportline.TransportLineTypeDto;
 import com.xinfei.DTO.transportline.TransportTripsDto;
 import com.xinfei.DTO.transportline.TransportTripsTruckDriverDto;
+import com.xinfei.common.exception.XfException;
 import com.xinfei.common.utils.Constant;
 import com.xinfei.common.utils.PageResponse;
 import com.xinfei.common.utils.Result;
@@ -561,6 +562,9 @@ public class TransforCenterBusinessController {
     public TruckVo saveTruck(@RequestBody TruckVo vo) {
         TruckDto dto = new TruckDto();
         BeanUtils.copyProperties(vo, dto);
+        // 在线状态/最后心跳为只读权威字段（北斗心跳维护），忽略任何入参，防伪造上线
+        dto.setOnlineStatus(null);
+        dto.setLastHeartbeatTime(null);
         if (vo.getFleet() != null) {
             dto.setFleetId(vo.getFleet().getId());
         }
@@ -580,6 +584,9 @@ public class TransforCenterBusinessController {
         vo.setId(id);
         TruckDto dto = new TruckDto();
         BeanUtils.copyProperties(vo, dto);
+        // 在线状态/最后心跳为只读权威字段（北斗心跳维护），忽略任何入参，防伪造上线
+        dto.setOnlineStatus(null);
+        dto.setLastHeartbeatTime(null);
         if (vo.getFleet() != null) {
             dto.setFleetId(vo.getFleet().getId());
         }
@@ -710,6 +717,10 @@ public class TransforCenterBusinessController {
         BeanUtils.copyProperties(vo, dto);
         dto.setTruckId(id);
         TruckDto truckDto = truckFeign.fineById(id);
+        // 车辆不存在或 base 服务降级返回 null：显式 400，避免下一行 NPE 落成 500
+        if (truckDto == null) {
+            throw new XfException("车辆不存在或服务异常，请刷新后重试", 400);
+        }
         dto.setId(truckDto.getTruckLicenseId());
         //加工数据
         if (StringUtils.isNotEmpty(vo.getExpirationDate())) {
@@ -734,6 +745,10 @@ public class TransforCenterBusinessController {
     @SaCheckPermission("truck:detail")
     public TruckLicenseVo findTruckLicenseById(@PathVariable(name = "id") String id) {
         TruckDto dto = truckFeign.fineById(id);
+        // 车辆不存在或 base 降级返回 null：按"无证照"契约返回空对象，避免 NPE 500
+        if (dto == null) {
+            return new TruckLicenseVo();
+        }
         TruckLicenseDto truckLicenseDto = null;
         if (StringUtils.isNotEmpty(dto.getTruckLicenseId())) {
             truckLicenseDto = truckLicenseFeign.fineById(dto.getTruckLicenseId());
