@@ -422,6 +422,39 @@ const TRUCK_STATE_LABEL: Record<TruckState, string> = {
   offline: "离线",
 };
 
+/**
+ * 车辆三态图标：百度默认 Marker 是红色水滴，与订单红水滴撞色导致车货不分。
+ * 车辆改为三态色实心圆点（白描边），订单保留红水滴，地图上一眼可分。
+ * 用 canvas 生成 PNG dataURL，每态只生成一次缓存（勿改 baidu-map 封装，避让在途认领）。
+ */
+const truckIconCache: Partial<Record<TruckState, any>> = {};
+function truckIcon(state: TruckState): any {
+  const cached = truckIconCache[state];
+  if (cached) return cached;
+  const size = 22;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (ctx && BMap) {
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, size / 2 - 2, 0, Math.PI * 2);
+    ctx.fillStyle = TRUCK_STATE_COLOR[state];
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#ffffff";
+    ctx.stroke();
+    const icon = new BMap.Icon(
+      canvas.toDataURL("image/png"),
+      new BMap.Size(size, size),
+      { anchor: new BMap.Size(size / 2, size / 2) }
+    );
+    truckIconCache[state] = icon;
+    return icon;
+  }
+  return null;
+}
+
 const truckCards = computed<TruckCardVM[]>(() => {
   const cards: TruckCardVM[] = [];
   // 1) 有实时定位的车辆，档案补载重/容积/车队
@@ -713,6 +746,7 @@ function renderTrucks() {
     if (!Number.isFinite(lng) || !Number.isFinite(lat)) return;
     const key = `${item.businessId}#${item.businessType}`;
     const point = new BMap.Point(lng, lat);
+    const state = truckState(item);
     const exist = truckMarkers.get(key);
     if (exist) {
       moveMarker(exist, point);
@@ -720,12 +754,18 @@ function renderTrucks() {
       // 否则轮询后车点移动、标签滞留旧位置，在线状态变色也不刷新
       exist.__label?.setPosition?.(point);
       exist.__truck = item;
-      exist.__label?.setStyle?.({ background: TRUCK_STATE_COLOR[truckState(item)] });
+      exist.__label?.setStyle?.({ background: TRUCK_STATE_COLOR[state] });
+      // 在线状态变化时换圆点图标（离线灰 → 在线绿）
+      if (exist.__state !== state) {
+        const icon = truckIcon(state);
+        if (icon) exist.setIcon(icon);
+        exist.__state = state;
+      }
       return;
     }
     const marker = createLabeledMarker(instance, BMap, point, item.licensePlate || item.name || "车辆", {
-      // 三态着色：绿=在线空闲 / 橙=在途 / 灰=离线（车点本体是默认水滴，颜色承载在车牌标签上）
-      background: TRUCK_STATE_COLOR[truckState(item)],
+      // 三态着色：绿=在线空闲 / 橙=在途 / 灰=离线（圆点图标 + 车牌标签同色）
+      background: TRUCK_STATE_COLOR[state],
       onClick: () => {
         // 轮询会替换数据行，点击时取回挂的最新行，避免信息窗展示过期快照
         const latest = (marker as any).__truck ?? item;
@@ -733,7 +773,11 @@ function renderTrucks() {
         openTruckInfo(latest);
       },
     });
+    // 替换默认红水滴为三态圆点，避免与订单红水滴撞色
+    const icon = truckIcon(state);
+    if (icon) marker.setIcon(icon);
     (marker as any).__truck = item;
+    (marker as any).__state = state;
     truckMarkers.set(key, marker);
   });
   syncTruckHighlight();
