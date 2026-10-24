@@ -99,8 +99,10 @@
             <span class="dispatch-board__title">调度工作台</span>
             <div class="dispatch-board__legend">
               <span><i class="dot dot--order" />待调度订单 {{ orders.length }}</span>
-              <span><i class="dot dot--truck" />在途车辆 {{ trucks.length }}</span>
-              <span><i class="dot dot--line" />线路 {{ lines.length }}</span>
+              <span><i class="dot dot--truck-idle" />空闲车辆</span>
+              <span><i class="dot dot--truck-duty" />在途车辆</span>
+              <span><i class="dot dot--truck-off" />离线车辆</span>
+              <span><i class="dot dot--line" />线路 {{ lines.length }}（勾选订单后展示）</span>
               <el-tag v-if="activeTruck" type="success" size="small" effect="dark">
                 已选车辆：{{ truckLabel(activeTruck) }}
               </el-tag>
@@ -120,7 +122,16 @@
           :title="mapError"
           class="dispatch-board__alert"
         />
-        <div v-else ref="mapRef" v-loading="loading" class="dispatch-board__map"></div>
+        <div v-else class="dispatch-board__map-wrap">
+          <div ref="mapRef" v-loading="loading" class="dispatch-board__map"></div>
+          <!-- 无订单且无车辆定位时给明确引导，避免用户面对空地图不知道要干嘛 -->
+          <div v-if="mapEmpty" class="dispatch-board__map-empty">
+            <el-empty
+              :image-size="80"
+              description="暂无可展示的订单或车辆：请先在 OMS 入库订单，并确认车辆 GPS 正常上报"
+            />
+          </div>
+        </div>
       </el-card>
 
       <!-- 右：候选车辆（实时位置 ⋈ 档案载重匹配） -->
@@ -155,7 +166,6 @@
             </div>
             <div class="dispatch-board__truck-badges">
               <el-tag :type="card.matchTag" size="small" effect="light">{{ card.matchLabel }}</el-tag>
-              <el-tag v-if="card.onDuty" type="warning" size="small" effect="plain">在途</el-tag>
             </div>
           </div>
           <el-empty v-if="!visibleTruckCards.length" description="暂无候选车辆" :image-size="60" />
@@ -247,6 +257,7 @@ import {
   moveMarker,
   wgs84ToBd09,
 } from "@/utils/baidu-map";
+import { parseBackendTime } from "@/utils/datetime";
 
 /** 车辆轮询间隔外部化（红线：轮询间隔禁硬编码），与在途监控共用同一 env，缺省兜底仅防 env 漏配 */
 const POLL_INTERVAL_MS = Number(import.meta.env.VITE_MAP_POLL_INTERVAL_MS || 10000);
@@ -293,7 +304,11 @@ const truckArchives = ref<Map<string, TruckRecord>>(new Map());
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 const orderMarkers = new Map<string, any>();
 const truckMarkers = new Map<string, any>();
-let lineOverlay: any = null;
+/**
+ * 线路覆盖物集合：每条线路一条独立 Polyline（旧实现把所有端点压进同一扁平数组
+ * 只画一条折线，相邻线路首尾乱连成「毛线网」）。key=线路 id。
+ */
+const lineOverlays = new Map<string, any>();
 
 const filteredOrders = computed(() => {
   const kw = keyword.value.trim().toLowerCase();
@@ -360,7 +375,7 @@ interface TruckCardVM {
   live: LocationRecordItem | null;
   online: boolean;
   statusLabel: string;
-  statusTag: "success" | "info" | "danger";
+  statusTag: "success" | "info" | "warning";
   matchLabel: string;
   matchTag: "success" | "danger" | "warning" | "info";
   /** 硬约束：超限（DSP-04 口径）+ 离线/无定位（R2-2/FR-36 同口径）禁选 */
@@ -373,11 +388,39 @@ interface TruckCardVM {
   truckTypeName?: string;
 }
 
+/**
+ * GPS 在线判定：reportTime 在离线阈值内。
+ *
+ * 历史坑：netty 的 LocalDateTime 输出 ISO 形态 `2026-10-18T22:10:05`，
+ * 旧代码先 replace 成 `2026/10/18T22:10:05`，Chrome 解析为 NaN，
+ * 导致全部车辆永远离线、右栏 0 台可派。统一走 parseBackendTime。
+ */
 function isTruckOnline(item: LocationRecordItem): boolean {
-  const time = Date.parse(String(item.reportTime || "").replace(/-/g, "/"));
-  if (!Number.isFinite(time)) return false;
+  const time = parseBackendTime(item.reportTime);
+  if (time == null) return false;
   return Date.now() - time <= GPS_OFFLINE_TIMEOUT_MS;
 }
+
+/** 车辆作业三态：在线空闲可派（绿）/ 有在途任务（橙）/ GPS 离线（灰） */
+type TruckState = "available" | "onDuty" | "offline";
+
+function truckState(item: LocationRecordItem): TruckState {
+  if (!isTruckOnline(item)) return "offline";
+  return item.transportTaskId ? "onDuty" : "available";
+}
+
+/** 三态底色（地图车牌标签 + 右栏状态标签同色，Element 状态色兜底） */
+const TRUCK_STATE_COLOR: Record<TruckState, string> = {
+  available: "#67C23A",
+  onDuty: "#E6A23C",
+  offline: "#909399",
+};
+
+const TRUCK_STATE_LABEL: Record<TruckState, string> = {
+  available: "在线",
+  onDuty: "在途",
+  offline: "离线",
+};
 
 const truckCards = computed<TruckCardVM[]>(() => {
   const cards: TruckCardVM[] = [];
@@ -406,13 +449,14 @@ const truckCards = computed<TruckCardVM[]>(() => {
       }
     }
     const onDuty = Boolean(item.transportTaskId);
+    const state = truckState(item);
     cards.push({
       key: `${item.businessId}#${item.businessType}`,
       label: item.licensePlate || item.name || truckId || "-",
       live: item,
       online,
-      statusLabel: online ? "在线" : "离线",
-      statusTag: online ? "success" : "danger",
+      statusLabel: TRUCK_STATE_LABEL[state],
+      statusTag: state === "available" ? "success" : state === "onDuty" ? "warning" : "info",
       matchLabel,
       matchTag,
       selectable: online && !overLimit,
@@ -457,6 +501,9 @@ const truckCards = computed<TruckCardVM[]>(() => {
 const visibleTruckCards = computed(() =>
   assignableOnly.value ? truckCards.value.filter((card) => card.selectable) : truckCards.value
 );
+
+/** 地图空态：订单与车辆定位均无数据时给引导（加载中不显示，避免首载闪烁） */
+const mapEmpty = computed(() => !loading.value && orders.value.length === 0 && trucks.value.length === 0);
 
 function isActiveTruck(card: TruckCardVM): boolean {
   return Boolean(
@@ -534,6 +581,81 @@ function stopPolling() {
   }
 }
 
+// ===== 地图信息窗（旧 baidu-map 封装无 InfoWindow 能力，本页直连 BMapGL，勿随封装搬迁） =====
+/** InfoWindow 直接吃 innerHTML，后端字段先转义防注入/破版 */
+function escapeHtml(value: unknown): string {
+  return String(value ?? "").replace(
+    /[&<>"']/g,
+    (ch) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch] as string
+  );
+}
+
+/** 上报/业务时间紧凑展示（yyyy-MM-dd HH:mm），无法解析回退占位 */
+function formatReportTime(value?: string): string {
+  const ms = parseBackendTime(value);
+  if (ms == null) return "-";
+  const d = new Date(ms);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** 信息窗统一骨架（scoped 样式进不了 InfoWindow，全部内联） */
+function openInfoWindow(point: any, title: string, rows: Array<[string, unknown]>): void {
+  const instance = map.value;
+  if (!instance || !BMap || !point) return;
+  const rowsHtml = rows
+    .map(([label, value]) => {
+      const text =
+        value === null || value === undefined || value === "" ? "-" : escapeHtml(value);
+      return `<div style="display:flex;gap:8px;line-height:20px;font-size:12px;">
+        <span style="flex:0 0 64px;color:#909399;">${escapeHtml(label)}</span>
+        <span style="flex:1;min-width:0;word-break:break-all;">${text}</span>
+      </div>`;
+    })
+    .join("");
+  const html = `<div style="max-width:260px;">
+    <div style="margin-bottom:6px;font-size:13px;font-weight:600;color:#FF0033;">${escapeHtml(title)}</div>
+    ${rowsHtml}
+  </div>`;
+  instance.openInfoWindow(new BMap.InfoWindow(html, { width: 280 }), point);
+}
+
+/** 车辆信息窗：车牌为标题，状态/司机/电话/车队/上报时间/来源/在途任务 */
+function openTruckInfo(item: LocationRecordItem): void {
+  const point = new BMap.Point(Number(item.bd09Lng), Number(item.bd09Lat));
+  openInfoWindow(point, truckLabel(item), [
+    ["状态", TRUCK_STATE_LABEL[truckState(item)]],
+    ["司机", item.name],
+    ["联系电话", item.phone],
+    ["所属车队", item.team],
+    ["上报时间", formatReportTime(item.reportTime)],
+    ["定位来源", item.source],
+    ["在途任务", item.transportTaskId],
+  ]);
+}
+
+/** 订单信息窗：订单号为标题，收发件人/当前网点/货量/下单时间 */
+function openOrderInfo(item: DispatchOrderPoint, point: any): void {
+  openInfoWindow(point, item.orderNo || item.id, [
+    ["发件人", item.senderName],
+    ["收件人", item.receiverName],
+    ["当前网点", item.currentOrgName || item.currentOrgId],
+    ["货物", cargoSummary(item)],
+    ["下单时间", formatReportTime(item.createTime)],
+  ]);
+}
+
+/** 线路信息窗（estimatedTime 线路档案未给单位，不臆造，原值展示） */
+function openLineInfo(line: DispatchLine, point: any): void {
+  openInfoWindow(point, line.name || "运输线路", [
+    ["起点网点", line.startOrgName],
+    ["目的网点", line.endOrgName],
+    ["里程", line.distance != null ? `${line.distance} km` : "-"],
+    ["预计时长", line.estimatedTime],
+  ]);
+}
+
 // ===== 地图渲染 =====
 async function initMap() {
   if (!mapRef.value) return;
@@ -574,6 +696,7 @@ function renderOrders() {
         offset: [12, -12],
         onClick: () => {
           activeOrderId.value = item.id;
+          openOrderInfo(item, point);
         },
       });
     orderMarkers.set(item.id, marker);
@@ -593,12 +716,24 @@ function renderTrucks() {
     const exist = truckMarkers.get(key);
     if (exist) {
       moveMarker(exist, point);
+      // GL 版 Label 是独立覆盖物，moveMarker 只移动 Marker：车牌标签/底色须手动同步，
+      // 否则轮询后车点移动、标签滞留旧位置，在线状态变色也不刷新
+      exist.__label?.setPosition?.(point);
+      exist.__truck = item;
+      exist.__label?.setStyle?.({ background: TRUCK_STATE_COLOR[truckState(item)] });
       return;
     }
     const marker = createLabeledMarker(instance, BMap, point, item.licensePlate || item.name || "车辆", {
-      background: cssVar("--el-color-primary", "#FF0033"),
-      onClick: () => selectTruck(item),
+      // 三态着色：绿=在线空闲 / 橙=在途 / 灰=离线（车点本体是默认水滴，颜色承载在车牌标签上）
+      background: TRUCK_STATE_COLOR[truckState(item)],
+      onClick: () => {
+        // 轮询会替换数据行，点击时取回挂的最新行，避免信息窗展示过期快照
+        const latest = (marker as any).__truck ?? item;
+        selectTruck(latest);
+        openTruckInfo(latest);
+      },
     });
+    (marker as any).__truck = item;
     truckMarkers.set(key, marker);
   });
   syncTruckHighlight();
@@ -645,30 +780,41 @@ async function searchTrucks(keyword: string) {
   }
 }
 
+/**
+ * 线路渲染：每条线路独立 Polyline，随勾选订单的起始网点联动。
+ *
+ * - 未勾选订单：不铺线。全国线路一次性全画且共用一条折线时首尾乱连，
+ *   用户根本看不懂地图在表达什么（调度工作台核心槽点）；
+ * - 勾选后：只画「该货所在网点 → 各目的网点」的候选线，语义=这批货能走哪些线；
+ * - 主选线路（派单目的线）心飞红加粗，其余浅灰；点击线条开窗并聚焦该线。
+ */
 function renderLines() {
   const instance = map.value;
   if (!instance) return;
-  if (lineOverlay) {
-    instance.removeOverlay(lineOverlay);
-    lineOverlay = null;
-  }
-  const points: any[] = [];
+  lineOverlays.forEach((overlay) => instance.removeOverlay(overlay));
+  lineOverlays.clear();
+  const orgId = startOrgId.value;
+  if (!orgId) return;
   lines.value.forEach((line) => {
+    if (line.startOrgId !== orgId) return;
     const start = lineOrgCoord(line.startOrgId, line.startOrgLng, line.startOrgLat);
     const end = lineOrgCoord(line.endOrgId, line.endOrgLng, line.endOrgLat);
-    if (start && end) {
-      points.push(start, end);
-    }
-  });
-  if (points.length >= 2) {
-    lineOverlay = new BMap.Polyline(points, {
-      // canvas 渲染取 CSS 变量实际色值，跟随主题（品牌色统一心飞红）
-      strokeColor: cssVar("--el-color-info", "#909399"),
-      strokeWeight: 2,
-      strokeOpacity: 0.5,
+    if (!start || !end) return;
+    const isTarget = targetLine.value?.id === line.id;
+    const polyline = new BMap.Polyline([start, end], {
+      strokeColor: isTarget ? "#FF0033" : cssVar("--el-color-info", "#909399"),
+      strokeWeight: isTarget ? 3 : 2,
+      strokeOpacity: isTarget ? 0.9 : 0.4,
     });
-    instance.addOverlay(lineOverlay);
-  }
+    polyline.addEventListener("click", () => {
+      // 信息窗锚在线路中点，视野收至起终两点
+      const midpoint = new BMap.Point((start.lng + end.lng) / 2, (start.lat + end.lat) / 2);
+      openLineInfo(line, midpoint);
+      instance.setViewport([start, end]);
+    });
+    instance.addOverlay(polyline);
+    lineOverlays.set(String(line.id), polyline);
+  });
 }
 
 /** 线路端点坐标：优先线路自带机构坐标，缺失时回退从待调度订单反查（同一 WGS84 源，渲染前转 BD09） */
@@ -702,14 +848,37 @@ function fitView() {
   fitViewport(instance, points);
 }
 
+/** 勾选聚焦：视野收至所选订单点 + 候选线路端点；连续追加勾选不跳动（仅 0→有 时触发） */
+function focusSelection() {
+  const instance = map.value;
+  if (!instance) return;
+  const points: any[] = [];
+  selected.value.forEach((id) => {
+    const position = orderMarkers.get(id)?.getPosition?.();
+    if (position) points.push(position);
+  });
+  lineOverlays.forEach((polyline) => {
+    (polyline.getPath?.() ?? []).forEach((point: any) => points.push(point));
+  });
+  fitViewport(instance, points);
+}
+
 // ===== 交互 =====
 function toggleSelectAll(checked: boolean) {
   selected.value = checked ? filteredOrders.value.map((item) => item.id) : [];
 }
 
-watch(selected, () => {
+watch(selected, (next, prev) => {
   const ids = new Set(filteredOrders.value.map((item) => item.id));
-  selectAll.value = selected.value.length > 0 && selected.value.every((id) => ids.has(id));
+  selectAll.value = next.length > 0 && next.every((id) => ids.has(id));
+  // 勾选变化 → 候选线路重铺；0→有 聚焦本批货与候选线，清空 → 回全图
+  renderLines();
+  const prevCount = prev?.length ?? 0;
+  if (prevCount === 0 && next.length > 0) {
+    focusSelection();
+  } else if (prevCount > 0 && next.length === 0) {
+    fitView();
+  }
 });
 
 function openAssign() {
@@ -1071,6 +1240,14 @@ onBeforeUnmount(() => {
     flex: 1;
     flex-direction: column;
     min-width: 0;
+
+    // 卡片 body 撑满剩余高度，地图容器才有确定尺寸（height:100% 链不断）
+    :deep(.el-card__body) {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      min-height: 0;
+    }
   }
 
   &__map-header {
@@ -1085,15 +1262,35 @@ onBeforeUnmount(() => {
 
   &__legend {
     display: flex;
-    gap: 12px;
+    flex-wrap: wrap;
+    gap: 4px 12px;
     align-items: center;
     font-size: 12px;
     color: var(--el-text-color-secondary);
   }
 
+  &__map-wrap {
+    position: relative;
+    flex: 1;
+    min-height: 480px;
+  }
+
   &__map {
+    width: 100%;
     height: 100%;
     min-height: 480px;
+    border-radius: 6px;
+  }
+
+  // 无数据引导浮层：盖在地图上但不挡死（留出地图背景感知）
+  &__map-empty {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--el-mask-color);
     border-radius: 6px;
   }
 
@@ -1137,8 +1334,16 @@ onBeforeUnmount(() => {
     background: var(--el-color-danger);
   }
 
-  &--truck {
-    background: var(--el-color-primary);
+  &--truck-idle {
+    background: #67c23a;
+  }
+
+  &--truck-duty {
+    background: #e6a23c;
+  }
+
+  &--truck-off {
+    background: #909399;
   }
 
   &--line {

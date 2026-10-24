@@ -15,6 +15,8 @@ interface ImportMetaEnv {
   readonly VITE_MAP_POLL_INTERVAL_MS?: string;
   /** 在途监控轨迹回放播放步长（毫秒/点） */
   readonly VITE_MAP_REPLAY_STEP_MS?: string;
+  /** GPS 定位超时阈值（分钟）：超过该时长未上报判定离线，与后端 gps.offline.timeout.minutes 同源口径 */
+  readonly VITE_GPS_OFFLINE_TIMEOUT_MINUTES?: string;
 }
 
 interface ImportMeta {

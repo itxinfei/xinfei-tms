@@ -102,6 +102,7 @@
 <script setup lang="ts">
 import { Clock } from "@element-plus/icons-vue";
 import { alarmTypeText, type AlarmRecord } from "@/api/alarm";
+import { parseBackendTime } from "@/utils/datetime";
 
 export interface DashboardTodoItem {
   id: string;
@@ -135,9 +136,8 @@ const emit = defineEmits<{
 
 /** 相对时长文案：从 start 到现在的间隔（X 分钟 / X 小时 Y 分 / X 天 Y 小时） */
 function formatDuration(start?: string): string {
-  if (!start) return "--";
-  const s = new Date(start.replace(/-/g, "/")).getTime();
-  if (Number.isNaN(s)) return "--";
+  const s = parseBackendTime(start);
+  if (s == null) return "--";
   const mins = Math.floor((Date.now() - s) / 60000);
   if (mins < 0) return "刚刚";
   if (mins < 60) return `${mins} 分钟`;
@@ -148,25 +148,23 @@ function formatDuration(start?: string): string {
 
 /** 待办订单超 24 小时未处理视为超时（红色高亮） */
 function todoWaitOverdue(start?: string): boolean {
-  if (!start) return false;
-  const s = new Date(start.replace(/-/g, "/")).getTime();
-  if (Number.isNaN(s)) return false;
+  const s = parseBackendTime(start);
+  if (s == null) return false;
   return Date.now() - s > 24 * 60 * 60 * 1000;
 }
 
 /** 告警超 2 小时未处理视为超时（红色高亮） */
 function alarmWaitOverdue(time?: string): boolean {
-  if (!time) return false;
-  const s = new Date(time.replace(/-/g, "/")).getTime();
-  if (Number.isNaN(s)) return false;
+  const s = parseBackendTime(time);
+  if (s == null) return false;
   return Date.now() - s > 2 * 60 * 60 * 1000;
 }
 
 /** 紧凑时间：仅显示 "MM-DD HH:mm"（跨年显示年份） */
 function formatShortTime(time?: string): string {
-  if (!time) return "--";
-  const d = new Date(time.replace(/-/g, "/"));
-  if (Number.isNaN(d.getTime())) return "--";
+  const s = parseBackendTime(time);
+  if (s == null) return "--";
+  const d = new Date(s);
   const pad = (n: number) => String(n).padStart(2, "0");
   const md = `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   return d.getFullYear() === new Date().getFullYear() ? md : `${d.getFullYear()}-${md}`;
