@@ -1,5 +1,5 @@
 import request from "@/utils/request";
-import type { MenuQueryParams, MenuItem, MenuForm, MenuAiResult, RouteItem } from "./types";
+import type { MenuQueryParams, MenuItem, MenuForm, RouteItem } from "./types";
 import type { OptionItem } from "@/api/common";
 import { MenuTypeEnum } from "@/enums";
 
@@ -40,16 +40,6 @@ const MenuAPI = {
       url: `${MENU_BASE_URL}/options`,
       method: "get",
       params: { types: [MenuTypeEnum.CATALOG, MenuTypeEnum.MENU] },
-    });
-  },
-  /**
-   * AI 推断访问路径与权限标识（未开启 AI 时返回业务异常）
-   */
-  aiFill(data: { name: string; type?: string; parentId?: string }) {
-    return request<unknown, MenuAiResult>({
-      url: `${MENU_BASE_URL}/ai-fill`,
-      method: "post",
-      data,
     });
   },
   /**

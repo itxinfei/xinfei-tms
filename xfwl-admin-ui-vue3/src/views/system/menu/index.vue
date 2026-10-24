@@ -229,35 +229,7 @@
         <SectionTitle title="基础信息" />
 
         <el-form-item label="菜单名称" prop="name">
-          <div class="menu-form__field">
-            <div class="menu-form__row">
-              <el-input v-model="formData.name" placeholder="侧边栏上显示的名字，如 用户管理" />
-              <el-tooltip
-                v-if="appConfig.aiEnabled && !isExternal"
-                :content="aiTip"
-                placement="top"
-              >
-                <span class="menu-form__tip-trigger">
-                  <el-button
-                    link
-                    type="primary"
-                    :loading="aiLoading"
-                    :disabled="!formData.name?.trim()"
-                    @click="handleAiFill"
-                  >
-                    <template #icon><span class="i-svg:ai" /></template>
-                    {{ aiLoading ? "推断中" : "推断" }}
-                  </el-button>
-                </span>
-              </el-tooltip>
-            </div>
-            <div v-if="aiFilledTip" class="menu-form__tip">
-              {{ aiFilledTip }}
-              <el-button class="menu-form__undo" link type="primary" @click="handleAiUndo">
-                撤销
-              </el-button>
-            </div>
-          </div>
+          <el-input v-model="formData.name" placeholder="侧边栏上显示的名字，如 用户管理" />
         </el-form-item>
 
         <el-form-item label="上级菜单" prop="parentId">
@@ -548,14 +520,12 @@ import {
   normalizeViewPath,
   pageComponentTree,
 } from "@/router/views";
-import { appConfig } from "@/settings";
 import { useAppStore } from "@/stores/app";
 import { usePermissionStore } from "@/stores/permission";
 import { CommonStatus, MenuScopeEnum, MenuTypeEnum } from "@/enums";
 import { DeviceEnum } from "@/enums/settings";
 import { isTenantEnabled } from "@/utils/tenant";
 import { isValidURL, joinRoutePath } from "@/utils";
-import { matchIcon } from "@/utils/icon";
 
 defineOptions({
   name: "SysMenu",
@@ -600,12 +570,6 @@ const dialogState = reactive({
   visible: false,
 });
 
-// AI 推断状态与结果提示
-const aiLoading = ref(false);
-const aiFilledTip = ref("");
-// AI 推断前的字段值，供撤销恢复
-let aiSnapshot: { routePath?: string; perm?: string; icon?: string } | null = null;
-
 // 同级页面已有按钮的权限模块名，用于推导按钮权限前缀
 const siblingPermModule = ref("");
 // 按钮权限前缀是否由自动推导填入，用户手改后不再跟随访问路径
@@ -633,11 +597,6 @@ const initialFormData: MenuForm = {
 };
 
 const formData = reactive<MenuForm>({ ...initialFormData });
-
-// AI 推断按钮的提示文案，未填名称时说明置灰原因
-const aiTip = computed(() =>
-  formData.name?.trim() ? "根据菜单名称推断访问路径、权限标识" : "先填写菜单名称"
-);
 
 // 上级菜单选项，顶级节点下挂完整菜单树
 const menuOptions = computed<OptionItem[]>(() => [
@@ -1067,16 +1026,6 @@ function deriveButtonPermPrefix(): string {
 }
 
 /**
- * 访问路径只保留最后一段
- * 该字段只存当前这一级的路径片段，上级路径由系统拼接；AI 偶尔会返回带上级的完整地址
- *
- * @param routePath AI 返回的访问路径
- */
-function resolveAiRoutePath(routePath: string): string {
-  return routePath.trim().split("/").filter(Boolean).pop() ?? "";
-}
-
-/**
  * 判断菜单是否位于指定子树内（含自身）
  *
  * @param root 子树根节点
@@ -1126,7 +1075,6 @@ function assignFormData(data: MenuForm): void {
   externalMode.value = formData.component === "iframe" ? "iframe" : "blank";
   originalComponent.value = formData.component;
   advancedPanels.value = [ADVANCED_PANEL];
-  clearAiFill();
   permPrefixAuto.value = false;
 }
 
@@ -1197,91 +1145,9 @@ function handleTypeChange(): void {
     formData.component = "";
   }
 
-  // 类型切换会清空权限标识等字段，AI 推断结果一并失效
-  clearAiFill();
   permPrefixAuto.value = false;
 
   nextTick(() => menuFormRef.value?.clearValidate());
-}
-
-/**
- * AI 推断访问路径与权限标识
- */
-async function handleAiFill(): Promise<void> {
-  const name = formData.name?.trim();
-  if (!name) return;
-
-  aiLoading.value = true;
-  // 记录推断前的值，供撤销恢复
-  aiSnapshot = { routePath: formData.routePath, perm: formData.perm, icon: formData.icon };
-  try {
-    const result = await MenuAPI.aiFill({
-      name,
-      type: formData.type,
-      parentId: formData.parentId,
-    });
-
-    // 只回填当前类型实际使用的字段：按钮只认权限标识，目录与页面补访问路径与图标
-    const filled: string[] = [];
-    const aiRoutePath = result.routePath ? resolveAiRoutePath(result.routePath) : "";
-    if (aiRoutePath && !isButton.value) {
-      formData.routePath = aiRoutePath;
-      filled.push(`访问路径 ${aiRoutePath}`);
-
-      // 路由名称按访问地址派生，与访问路径保持同源；用户已手填时不覆盖
-      if (isPage.value && !formData.routeName?.trim() && derivedRouteName.value) {
-        formData.routeName = derivedRouteName.value;
-        filled.push(`路由名称 ${derivedRouteName.value}`);
-      }
-    }
-    if (result.perm && isButton.value) {
-      formData.perm = result.perm;
-      filled.push(`权限标识 ${result.perm}`);
-    }
-    // 图标由关键词匹配前端图标库，匹配不到就不填
-    if (!isButton.value) {
-      const icon = matchIcon(result.iconKeywords ?? []);
-      if (icon) {
-        formData.icon = icon;
-        filled.push(`图标 ${icon}`);
-      }
-    }
-    if (filled.length === 0) {
-      clearAiFill();
-      ElMessage.warning("AI 未推断出可用结果");
-      return;
-    }
-
-    aiFilledTip.value = `已推断 ${filled.join("、")}`;
-    nextTick(() => menuFormRef.value?.clearValidate(["routePath", "perm"]));
-  } catch {
-    // 业务异常已由请求拦截器统一提示后端 message（含 AI 未开启的具体原因）
-    clearAiFill();
-  } finally {
-    aiLoading.value = false;
-  }
-}
-
-/**
- * 恢复到 AI 推断前的值
- */
-function handleAiUndo(): void {
-  if (!aiSnapshot) return;
-
-  formData.routePath = aiSnapshot.routePath;
-  formData.perm = aiSnapshot.perm;
-  formData.icon = aiSnapshot.icon;
-  clearAiFill();
-  nextTick(() => menuFormRef.value?.clearValidate(["routePath", "perm"]));
-  ElMessage.info("已撤销 AI 推断");
-}
-
-/**
- * 清空 AI 推断结果与快照
- */
-function clearAiFill(): void {
-  aiSnapshot = null;
-  aiFilledTip.value = "";
 }
 
 /**
@@ -1612,25 +1478,11 @@ onMounted(() => {
   margin-top: 8px;
 }
 
-/* AI 推断按钮的包裹层：按钮置灰时不触发 hover，提示挂在外层才能显示 */
-.menu-form__tip-trigger {
-  display: inline-flex;
-  flex: none;
-}
-
 .menu-form__tip {
   margin-top: 4px;
   font-size: 12px;
   line-height: 1.4;
   color: var(--el-text-color-secondary);
-}
-
-/* AI 结果行里的撤销按钮：贴着小字提示，去掉默认内边距 */
-.menu-form__undo {
-  padding: 0;
-  margin-left: 4px;
-  font-size: 12px;
-  vertical-align: baseline;
 }
 
 .menu-form__path {
