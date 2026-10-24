@@ -101,7 +101,7 @@
                 v-hasPerm="['sys:tenant:update']"
                 :active-value="CommonStatus.ENABLED"
                 :inactive-value="CommonStatus.DISABLED"
-                :disabled="isPlatformTenantId(scope.row.id)"
+                :disabled="isBuiltinTenantId(scope.row.id)"
                 @change="handleStatusChange(scope.row as TenantItem)"
               />
             </template>
@@ -111,7 +111,7 @@
           <el-table-column fixed="right" label="操作" width="320" align="center">
             <template #default="scope">
               <el-tooltip
-                v-if="!isPlatformTenantId(scope.row.id)"
+                v-if="!isBuiltinTenantId(scope.row.id)"
                 content="更换租户套餐（将影响可用功能）"
                 placement="top"
               >
@@ -128,7 +128,7 @@
                 </el-button>
               </el-tooltip>
               <el-tooltip
-                v-if="!isPlatformTenantId(scope.row.id)"
+                v-if="!isBuiltinTenantId(scope.row.id)"
                 content="在当前套餐范围内配置租户可用功能"
                 placement="top"
               >
@@ -155,7 +155,7 @@
                 编辑
               </el-button>
               <el-button
-                v-if="!isPlatformTenantId(scope.row.id)"
+                v-if="!isBuiltinTenantId(scope.row.id)"
                 v-hasPerm="['sys:tenant:delete']"
                 type="danger"
                 size="small"
@@ -203,7 +203,7 @@
         </el-form-item>
 
         <el-form-item
-          v-if="!isPlatformTenant && (formData.id == null || String(formData.id) === '')"
+          v-if="!isBuiltinTenant && (formData.id == null || String(formData.id) === '')"
           label="租户套餐"
           prop="planId"
         >
@@ -248,7 +248,7 @@
         </el-form-item>
 
         <el-form-item
-          v-if="formData.id != null && String(formData.id) !== ''"
+          v-if="formData.id != null && String(formData.id) !== '' && !isBuiltinTenant"
           label="状态"
           prop="status"
         >
@@ -400,7 +400,7 @@ import type {
 import type { OptionItem } from "@/api/common";
 import { CommonStatus, MenuScopeEnum } from "@/enums";
 import { hasPerm } from "@/utils/auth";
-import { isPlatformTenantId } from "@/utils/tenant";
+import { isBuiltinTenantId } from "@/utils/tenant";
 import { usePageTable, useTableSelection } from "@/composables";
 
 defineOptions({
@@ -462,15 +462,15 @@ const initialFormData: TenantForm & TenantCreateForm = {
 
 const formData = reactive<TenantForm & TenantCreateForm>({ ...initialFormData });
 
-// 当前表单是否为平台租户
-const isPlatformTenant = computed(() => isPlatformTenantId(formData.id));
+// 当前表单是否为内置租户
+const isBuiltinTenant = computed(() => isBuiltinTenantId(formData.id));
 
 /**
- * 表格行是否可勾选（平台租户不可勾选）
+ * 表格行是否可勾选（内置租户不可勾选）
  *
  * @param row 当前租户行
  */
-const isTenantSelectable = (row: TenantItem) => !isPlatformTenantId(row.id);
+const isTenantSelectable = (row: TenantItem) => !isBuiltinTenantId(row.id);
 
 const rules: FormRules<TenantForm & TenantCreateForm> = {
   name: [{ required: true, message: "请输入租户名称", trigger: "blur" }],
@@ -478,7 +478,7 @@ const rules: FormRules<TenantForm & TenantCreateForm> = {
   planId: [
     {
       validator: (_: unknown, value: number | undefined, callback: (error?: Error) => void) => {
-        if (isPlatformTenant.value) return callback();
+        if (isBuiltinTenant.value) return callback();
         if (formData.id != null && String(formData.id) !== "") return callback();
         if (value == null) return callback(new Error("请选择租户套餐"));
         return callback();
@@ -690,7 +690,7 @@ function closeTenantPlanDialog(): void {
 async function openTenantPlanDialog(row: TenantItem): Promise<void> {
   const tenantId = row.id;
   if (tenantId == null || tenantId === "") return;
-  if (isPlatformTenantId(tenantId)) return;
+  if (isBuiltinTenantId(tenantId)) return;
 
   tenantPlanSelectVisible.value = true;
   loading.value = true;
@@ -729,7 +729,7 @@ async function openTenantPlanDialog(row: TenantItem): Promise<void> {
 async function openTenantCustomizeDialog(row?: TenantItem): Promise<void> {
   const tenantId = row?.id ?? checkedTenant.value.id;
   if (!tenantId) return;
-  if (isPlatformTenantId(tenantId)) return;
+  if (isBuiltinTenantId(tenantId)) return;
 
   loading.value = true;
   menuParentChildLinked.value = true;
@@ -886,7 +886,7 @@ async function openDialog(tenantId?: string): Promise<void> {
     Object.assign(formData, data);
     formData.adminUsername = "";
     formData.planId = formData.planId != null ? Number(formData.planId) : undefined;
-    if (isPlatformTenant.value) {
+    if (isBuiltinTenant.value) {
       formData.planId = undefined;
     }
   } else {

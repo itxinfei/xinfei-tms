@@ -14,12 +14,13 @@ export const APP_PREFIX = "vea";
 export const ROLE_ROOT = "ADMIN";
 
 /**
- * 平台租户 ID
+ * 内置租户 ID 集合
  *
  * @description
- * 用于前端识别平台租户（不参与套餐/菜单配置）
+ * 0=平台级虚拟口径（预留 SaaS 平台行），1=初始主租户（心飞物流/xinfei）。
+ * 内置租户不参与套餐/菜单配置，且禁止停用/删除（停用或删除会令该租户全员无法登录）。
  */
-export const PLATFORM_TENANT_ID = 0;
+export const BUILTIN_TENANT_IDS: ReadonlyArray<number> = [0, 1];
 
 /**
  * 存储键名常量

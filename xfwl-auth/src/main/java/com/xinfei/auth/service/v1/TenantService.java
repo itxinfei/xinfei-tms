@@ -30,6 +30,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 /**
  * 平台租户管理（youlai 契约 /api/v1/tenants）。
@@ -48,8 +49,12 @@ public class TenantService {
     private static final BCryptPasswordEncoder ENC = new BCryptPasswordEncoder();
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    /** 平台内置租户 ID：平台侧账号归属，禁止停用 */
-    private static final long PLATFORM_TENANT_ID = 0L;
+    /**
+     * 内置租户 ID：0=平台级虚拟口径（SysConfig/SysApp 固定 tenant_id=0，预留 SaaS 平台行）；
+     * 1=初始主租户（心飞物流/xinfei，dev 现行唯一租户）。
+     * 两者均禁止停用/删除——停用或删除会让该租户全员无法登录（登录第 3 步校验租户状态）。
+     */
+    private static final Set<Long> BUILTIN_TENANT_IDS = Set.of(0L, 1L);
 
     public PageResult<TenantVO> page(long pageNum, long pageSize, String keywords, Integer status) {
         IPage<AuthTenant> res = tenantMapper.selectPage(new Page<>(pageNum, pageSize),
@@ -164,7 +169,12 @@ public class TenantService {
     @Transactional
     public void update(Long id, TenantForm form) {
         AuthTenant t = mustGet(id);
+        boolean builtin = id != null && BUILTIN_TENANT_IDS.contains(id);
         if (StringUtils.hasText(form.getCode()) && !form.getCode().trim().equals(t.getCode())) {
+            // 内置租户编码即登录租户标识（如 xinfei），改掉会令该租户全员登录时无法解析租户
+            if (builtin) {
+                throw BizException.validFail("内置租户编码不允许修改");
+            }
             if (tenantMapper.selectCount(Wrappers.<AuthTenant>lambdaQuery()
                     .eq(AuthTenant::getCode, form.getCode().trim())) > 0) {
                 throw BizException.validFail("租户编码已存在：" + form.getCode().trim());
@@ -179,8 +189,12 @@ public class TenantService {
         t.setContactPhone(form.getContactPhone());
         t.setDomain(form.getDomain());
         t.setLogo(form.getLogo());
-        t.setPlanId(form.getPlanId());
-        t.setStatus(form.getStatus());
+        // 内置租户不参与套餐配置、禁止停用：编辑表单提交的这两个字段一律忽略，
+        // 防止绕过 updateStatus 守卫经本接口间接停用（停用会令该租户全员无法登录）
+        if (!builtin) {
+            t.setPlanId(form.getPlanId());
+            t.setStatus(form.getStatus());
+        }
         t.setRemark(form.getRemark());
         t.setExpireTime(parse(form.getExpireTime()));
         tenantMapper.updateById(t);
@@ -188,8 +202,8 @@ public class TenantService {
 
     @Transactional
     public void deleteByIds(List<Long> ids) {
-        if (ids != null && ids.stream().anyMatch(id -> id != null && id == PLATFORM_TENANT_ID)) {
-            throw BizException.validFail("平台内置租户不允许删除");
+        if (ids != null && ids.stream().anyMatch(id -> id != null && BUILTIN_TENANT_IDS.contains(id))) {
+            throw BizException.validFail("内置租户不允许删除");
         }
         tenantMapper.deleteByIds(ids);
         ids.forEach(tid -> tenantMenuMapper.delete(
@@ -197,8 +211,8 @@ public class TenantService {
     }
 
     public void updateStatus(Long id, Integer status) {
-        if (id != null && id == PLATFORM_TENANT_ID) {
-            throw BizException.validFail("平台内置租户状态不允许修改");
+        if (id != null && BUILTIN_TENANT_IDS.contains(id)) {
+            throw BizException.validFail("内置租户状态不允许修改");
         }
         AuthTenant t = mustGet(id);
         t.setStatus(status);
