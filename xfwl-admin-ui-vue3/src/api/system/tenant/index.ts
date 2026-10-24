@@ -91,6 +91,20 @@ const TenantAPI = {
   },
 
   /**
+   * 修改租户启停状态
+   *
+   * @param id 租户 ID
+   * @param status 目标状态（CommonStatus.ENABLED/DISABLED）
+   */
+  updateStatus(id: string | number, status: number) {
+    return request<unknown, void>({
+      url: `${TENANT_BASE_URL}/${id}/status`,
+      method: "put",
+      params: { status },
+    });
+  },
+
+  /**
    * 删除租户（批量）
    */
   deleteByIds(ids: string) {

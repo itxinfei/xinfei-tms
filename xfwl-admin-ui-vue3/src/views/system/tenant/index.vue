@@ -96,9 +96,14 @@
           <el-table-column label="电话" prop="contactPhone" width="120" />
           <el-table-column label="状态" width="90" align="center">
             <template #default="scope">
-              <el-tag :type="scope.row.status === CommonStatus.ENABLED ? 'success' : 'info'">
-                {{ scope.row.status === CommonStatus.ENABLED ? "正常" : "禁用" }}
-              </el-tag>
+              <el-switch
+                v-model="scope.row.status"
+                v-hasPerm="['sys:tenant:update']"
+                :active-value="CommonStatus.ENABLED"
+                :inactive-value="CommonStatus.DISABLED"
+                :disabled="isPlatformTenantId(scope.row.id)"
+                @change="handleStatusChange(scope.row as TenantItem)"
+              />
             </template>
           </el-table-column>
           <el-table-column label="过期时间" prop="expireTime" width="160" />
@@ -896,6 +901,46 @@ async function openDialog(tenantId?: string): Promise<void> {
 function closeDialog(): void {
   dialogState.visible = false;
   resetForm();
+}
+
+/**
+ * 切换租户启停状态：确认后调用后端，取消或失败均回弹开关
+ *
+ * @param row 当前租户行
+ */
+async function handleStatusChange(row: TenantItem): Promise<void> {
+  const id = row.id;
+  if (id == null || id === "") {
+    // 无 id 行理论上不存在，回弹开关避免 UI 与数据状态不一致
+    row.status =
+      row.status === CommonStatus.ENABLED ? CommonStatus.DISABLED : CommonStatus.ENABLED;
+    return;
+  }
+
+  const status = row.status as number;
+  const previous =
+    status === CommonStatus.ENABLED ? CommonStatus.DISABLED : CommonStatus.ENABLED;
+  try {
+    await ElMessageBox.confirm(
+      status === CommonStatus.DISABLED ? "确认停用该租户？" : "确认启用该租户？",
+      "提示",
+      {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      }
+    );
+  } catch {
+    row.status = previous;
+    return;
+  }
+
+  try {
+    await TenantAPI.updateStatus(id, status);
+    ElMessage.success("状态已更新");
+  } catch {
+    row.status = previous;
+  }
 }
 
 // 提交租户表单

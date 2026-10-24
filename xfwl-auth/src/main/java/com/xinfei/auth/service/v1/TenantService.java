@@ -48,6 +48,9 @@ public class TenantService {
     private static final BCryptPasswordEncoder ENC = new BCryptPasswordEncoder();
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+    /** 平台内置租户 ID：平台侧账号归属，禁止停用 */
+    private static final long PLATFORM_TENANT_ID = 0L;
+
     public PageResult<TenantVO> page(long pageNum, long pageSize, String keywords, Integer status) {
         IPage<AuthTenant> res = tenantMapper.selectPage(new Page<>(pageNum, pageSize),
                 Wrappers.<AuthTenant>lambdaQuery()
@@ -185,12 +188,18 @@ public class TenantService {
 
     @Transactional
     public void deleteByIds(List<Long> ids) {
+        if (ids != null && ids.stream().anyMatch(id -> id != null && id == PLATFORM_TENANT_ID)) {
+            throw BizException.validFail("平台内置租户不允许删除");
+        }
         tenantMapper.deleteByIds(ids);
         ids.forEach(tid -> tenantMenuMapper.delete(
                 Wrappers.<SysTenantMenu>lambdaQuery().eq(SysTenantMenu::getTenantId, tid)));
     }
 
     public void updateStatus(Long id, Integer status) {
+        if (id != null && id == PLATFORM_TENANT_ID) {
+            throw BizException.validFail("平台内置租户状态不允许修改");
+        }
         AuthTenant t = mustGet(id);
         t.setStatus(status);
         tenantMapper.updateById(t);
