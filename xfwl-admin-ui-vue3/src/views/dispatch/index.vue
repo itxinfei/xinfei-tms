@@ -164,6 +164,10 @@
               载重 {{ formatNum(card.allowableLoad, "未知") }} kg / 容积
               {{ formatNum(card.allowableVolume, "未知") }} m³
             </div>
+            <div v-if="card.distanceKm != null" class="dispatch-board__truck-distance">
+              <el-icon><Position /></el-icon>
+              距装货网点 {{ formatDistanceKm(card.distanceKm) }}
+            </div>
             <div class="dispatch-board__truck-badges">
               <el-tag :type="card.matchTag" size="small" effect="light">{{ card.matchLabel }}</el-tag>
             </div>
@@ -238,7 +242,7 @@
 <script setup lang="ts">
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { computed, nextTick, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref, shallowRef, watch } from "vue";
-import { Refresh, Search } from "@element-plus/icons-vue";
+import { Position, Refresh, Search } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import DispatchAPI, {
   type DispatchAssignResult,
@@ -258,6 +262,7 @@ import {
   wgs84ToBd09,
 } from "@/utils/baidu-map";
 import { parseBackendTime } from "@/utils/datetime";
+import { formatDistanceKm, haversineKm } from "@/utils/geo";
 
 /** 车辆轮询间隔外部化（红线：轮询间隔禁硬编码），与在途监控共用同一 env，缺省兜底仅防 env 漏配 */
 const POLL_INTERVAL_MS = Number(import.meta.env.VITE_MAP_POLL_INTERVAL_MS || 10000);
@@ -333,6 +338,21 @@ const targetLine = computed<DispatchLine | undefined>(() =>
   lines.value.find((line) => line.startOrgId === startOrgId.value)
 );
 
+/**
+ * 装货网点 WGS84 坐标（就近派车的距离基准）。
+ * 取所选首单的入库网点坐标；订单坐标缺失时回退主选线起点，同一 WGS84 源。
+ */
+const startOrgCoord = computed<{ lng: number; lat: number } | null>(() => {
+  const first = orders.value.find((item) => selected.value.includes(item.id));
+  const lng = Number(first?.longitude);
+  const lat = Number(first?.latitude);
+  if (Number.isFinite(lng) && Number.isFinite(lat)) return { lng, lat };
+  const lineLng = Number(targetLine.value?.startOrgLng);
+  const lineLat = Number(targetLine.value?.startOrgLat);
+  if (Number.isFinite(lineLng) && Number.isFinite(lineLat)) return { lng: lineLng, lat: lineLat };
+  return null;
+});
+
 /** 数值格式化：空值回退占位（载重/容积档案缺失时显示"未知"） */
 function formatNum(value: number | undefined | null, fallback = "0"): string {
   if (value == null || !Number.isFinite(Number(value))) return fallback;
@@ -386,6 +406,8 @@ interface TruckCardVM {
   allowableVolume?: number;
   fleetName?: string;
   truckTypeName?: string;
+  /** 到装货网点的直线距离（km），就近派车排序用；未勾选订单或无坐标为 null */
+  distanceKm: number | null;
 }
 
 /**
@@ -483,6 +505,12 @@ const truckCards = computed<TruckCardVM[]>(() => {
     }
     const onDuty = Boolean(item.transportTaskId);
     const state = truckState(item);
+    // 就近距离：车辆 WGS84 原始坐标 → 装货网点，直线仅用于排序，非计费里程
+    const origin = startOrgCoord.value;
+    const distanceKm =
+      origin != null
+        ? haversineKm(Number(item.latitude), Number(item.longitude), origin.lat, origin.lng)
+        : null;
     cards.push({
       key: `${item.businessId}#${item.businessType}`,
       label: item.licensePlate || item.name || truckId || "-",
@@ -503,6 +531,7 @@ const truckCards = computed<TruckCardVM[]>(() => {
       allowableVolume: volume,
       fleetName: archive?.fleet?.name,
       truckTypeName: archive?.truckType?.name,
+      distanceKm,
     });
   });
   // 2) 有档案但无实时定位的车辆：无定位禁选，置底保留档案可见性
@@ -524,11 +553,19 @@ const truckCards = computed<TruckCardVM[]>(() => {
       allowableVolume: archive.allowableVolume,
       fleetName: archive.fleet?.name,
       truckTypeName: archive.truckType?.name,
+      distanceKm: null,
     });
   });
-  // 排序：可派 → 在途 → 不可派（离线/超限/无定位）
+  // 排序：可派空闲 → 在途 → 不可派（离线/超限/无定位）；同档内按距装货网点就近升序，无距离置底
   const rank = (card: TruckCardVM) => (card.selectable ? (card.onDuty ? 1 : 0) : 2);
-  return cards.sort((a, b) => rank(a) - rank(b));
+  return cards.sort((a, b) => {
+    const rankDiff = rank(a) - rank(b);
+    if (rankDiff !== 0) return rankDiff;
+    if (a.distanceKm == null && b.distanceKm == null) return 0;
+    if (a.distanceKm == null) return 1;
+    if (b.distanceKm == null) return -1;
+    return a.distanceKm - b.distanceKm;
+  });
 });
 
 const visibleTruckCards = computed(() =>
@@ -858,7 +895,55 @@ function renderLines() {
     });
     instance.addOverlay(polyline);
     lineOverlays.set(String(line.id), polyline);
+    // 仅主选线（派单实际要走的线）贴合真实道路；候选浅灰线不发驾车请求，省配额、防卡顿
+    if (isTarget) planDrivingPath(polyline, start, end, String(line.id));
   });
+}
+
+/**
+ * 用百度驾车规划把直线替换为真实道路路径。
+ *
+ * GL 库未提供 DrivingRoute、AK 未开通 Direction、检索失败或 3 秒不回调时，
+ * 一律静默保留两点直线——直线本就是可用兜底，绝不能因路径规划失败而不画线。
+ * 仅对主选一条线发请求；重新勾选导致覆盖物被重建时，迟到的旧回调通过 Map 比对丢弃。
+ */
+function planDrivingPath(polyline: any, start: any, end: any, lineId: string) {
+  const DrivingRoute = BMap?.DrivingRoute;
+  if (typeof DrivingRoute !== "function" || !map.value) return;
+  let finished = false;
+  let router: any;
+  const finish = () => {
+    finished = true;
+    try {
+      router?.clearResults?.();
+    } catch {
+      /* 忽略清理异常 */
+    }
+  };
+  try {
+    router = new DrivingRoute(map.value, {
+      onSearchComplete: (results: any) => {
+        if (finished) return;
+        // 覆盖物已被重建/移除：迟到回调不得操作旧折线
+        if (lineOverlays.get(lineId) !== polyline) return finish();
+        try {
+          const path = results?.getPlan?.(0)?.getRoute?.(0)?.getPath?.();
+          if (Array.isArray(path) && path.length > 1) polyline.setPath(path);
+        } catch {
+          /* 取路径异常：保留直线 */
+        }
+        finish();
+      },
+      onSearchFail: finish,
+    });
+    router.search(start, end);
+    // 驾车服务不回调（配额/未开通）时 3 秒后放弃，直线继续展示
+    setTimeout(() => {
+      if (!finished) finish();
+    }, 3000);
+  } catch {
+    /* 构造或检索异常：保留直线，不打断线路渲染 */
+  }
 }
 
 /** 线路端点坐标：优先线路自带机构坐标，缺失时回退从待调度订单反查（同一 WGS84 源，渲染前转 BD09） */
@@ -1119,6 +1204,9 @@ onBeforeUnmount(() => {
   &__order-body {
     flex: 1;
     min-width: 0;
+    // Element Plus 的 .el-checkbox-group 默认 line-height:0（消除组内 checkbox 间隙），
+    // 纯文本子行只恢复 font-size 会继承 0 行高被压没（订单号/收发人/货物消失），此处显式恢复
+    line-height: 1.5;
   }
 
   // 长订单号单行省略，防撑破 320px 侧栏
@@ -1258,6 +1346,20 @@ onBeforeUnmount(() => {
     font-size: 12px;
     font-variant-numeric: tabular-nums;
     color: var(--el-text-color-regular);
+  }
+
+  &__truck-distance {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+    margin-top: 4px;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--el-color-danger);
+
+    .el-icon {
+      font-size: 12px;
+    }
   }
 
   &__truck-badges {
