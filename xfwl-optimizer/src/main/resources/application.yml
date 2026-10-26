@@ -1,0 +1,78 @@
+server:
+  port: 8193
+  tomcat:
+    uri-encoding: UTF-8
+    max-threads: 200
+    min-spare-threads: 10
+  connection-timeout: 10000ms
+
+spring:
+  application:
+    name: xfwl-optimizer
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  main:
+    allow-bean-definition-overriding: true
+  threads:
+    virtual:
+      enabled: true
+  config:
+    import:
+      - optional:nacos:xfwl-optimizer.yml
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:192.168.20.130:8848}
+        namespace: 1cb93ce4-dc0e-4730-b759-d35fd7ed93c3
+        group: xinfei-tms
+        username: ${NACOS_USERNAME:nacos}
+        password: ${NACOS_PASSWORD:123456}
+      config:
+        server-addr: ${NACOS_SERVER_ADDR:192.168.20.130:8848}
+        namespace: 1cb93ce4-dc0e-4730-b759-d35fd7ed93c3
+        group: xinfei-tms
+        file-extension: yml
+        username: ${NACOS_USERNAME:nacos}
+        password: ${NACOS_PASSWORD:123456}
+  jackson:
+    time-zone: GMT+8
+    date-format: yyyy-MM-dd HH:mm:ss
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+  health:
+    defaults:
+      enabled: true
+
+# xfwl-optimizer 无状态求解服务配置。OR-Tools 默认关闭，Linux Docker 原生库 smoke test 通过后再按环境开启。
+xfwl:
+  optimizer:
+    default-engine: RULE
+    preview-time-limit-ms: 5000
+    async-time-limit-ms: 30000
+    max-order-count: 500
+    max-vehicle-count: 80
+    compare-rule: true
+    weight-safety-factor: 0.98
+    volume-fill-factor: 0.85
+    full-threshold-percent: 90
+    engines:
+      ortools:
+        enabled: ${XFWL_OPTIMIZER_ORTOOLS_ENABLED:false}
+        version: 9.12.4544
+        smoke-on-startup: ${XFWL_OPTIMIZER_ORTOOLS_SMOKE_ON_STARTUP:false}
+      timefold:
+        enabled: false
+        version: not-bundled
+
+logging:
+  level:
+    com.xinfei.optimizer: ${LOG_LEVEL_OPTIMIZER:INFO}
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n"

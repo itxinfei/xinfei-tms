@@ -1,0 +1,238 @@
+{
+  "src": "D:\\MyCode\\pinda-tms\\docs\\index.html",
+  "url": "file:///D:/MyCode/pinda-tms/docs/index.html",
+  "outdir": "D:\\MyCode\\pinda-tms\\docs\\_shots",
+  "include": [
+    "lint",
+    "screenshots",
+    "structure"
+  ],
+  "shots": {
+    "desktop": {
+      "slices": [
+        "D:\\MyCode\\pinda-tms\\docs\\_shots\\index_desktop_p1of4.jpg",
+        "D:\\MyCode\\pinda-tms\\docs\\_shots\\index_desktop_p2of4.jpg",
+        "D:\\MyCode\\pinda-tms\\docs\\_shots\\index_desktop_p3of4.jpg",
+        "D:\\MyCode\\pinda-tms\\docs\\_shots\\index_desktop_p4of4.jpg"
+      ],
+      "sliceHint": "按顺序 Read slices 里的各分片。",
+      "truncated": false,
+      "structure": {
+        "title": "心飞物流TMS · 开源运输管理系统",
+        "firstH1": "心飞物流 TMS",
+        "viewport": {
+          "w": 1440,
+          "h": 900
+        },
+        "fullpage": {
+          "w": 1440,
+          "h": 14864
+        },
+        "counts": {
+          "section": 15,
+          "h1": 1,
+          "h2": 13,
+          "img": 37,
+          "canvas": 0,
+          "svg": 24,
+          "links": 18,
+          "buttons": 1
+        }
+      },
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "horizontalOverflow": [],
+      "resourceErrors": [],
+      "duplicateImagesWarning": [
+        {
+          "count": 2,
+          "contentImageTotal": 14,
+          "sameRenderedSize": false,
+          "distinctAlts": 2,
+          "sizes": [
+            "880x461",
+            "510x268"
+          ],
+          "alts": [
+            "心飞物流TMS 工作台仪表盘真实截图",
+            "工作台仪表盘截图"
+          ],
+          "src": "file:///D:/MyCode/pinda-tms/docs/screenshots/admin-dashboard.png"
+        }
+      ],
+      "duplicateImagesHint": "info · 同一图片资源在多处使用；count 是次数，contentImageTotal 是内容图总数。尺寸和 alt 差异仅供参考，不代表使用错误；总览、局部探索和详情可以复用同图。本项不要求换图、减少展示数量或修改布局。",
+      "reportSource": "cdp"
+    },
+    "mobile": {
+      "slices": [
+        "D:\\MyCode\\pinda-tms\\docs\\_shots\\index_mobile_p1of7.jpg",
+        "D:\\MyCode\\pinda-tms\\docs\\_shots\\index_mobile_p2of7.jpg",
+        "D:\\MyCode\\pinda-tms\\docs\\_shots\\index_mobile_p3of7.jpg",
+        "D:\\MyCode\\pinda-tms\\docs\\_shots\\index_mobile_p4of7.jpg",
+        "D:\\MyCode\\pinda-tms\\docs\\_shots\\index_mobile_p5of7.jpg",
+        "D:\\MyCode\\pinda-tms\\docs\\_shots\\index_mobile_p6of7.jpg",
+        "D:\\MyCode\\pinda-tms\\docs\\_shots\\index_mobile_p7of7.jpg"
+      ],
+      "sliceHint": "按顺序 Read slices 里的各分片。",
+      "truncated": false,
+      "structure": {
+        "title": "心飞物流TMS · 开源运输管理系统",
+        "firstH1": "心飞物流 TMS",
+        "viewport": {
+          "w": 390,
+          "h": 844
+        },
+        "fullpage": {
+          "w": 390,
+          "h": 21112
+        },
+        "counts": {
+          "section": 15,
+          "h1": 1,
+          "h2": 13,
+          "img": 37,
+          "canvas": 0,
+          "svg": 24,
+          "links": 18,
+          "buttons": 1
+        }
+      },
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "horizontalOverflow": [],
+      "resourceErrors": [],
+      "duplicateImagesWarning": [
+        {
+          "count": 2,
+          "contentImageTotal": 14,
+          "sameRenderedSize": false,
+          "distinctAlts": 2,
+          "sizes": [
+            "350x184",
+            "328x173"
+          ],
+          "alts": [
+            "心飞物流TMS 工作台仪表盘真实截图",
+            "工作台仪表盘截图"
+          ],
+          "src": "file:///D:/MyCode/pinda-tms/docs/screenshots/admin-dashboard.png"
+        }
+      ],
+      "duplicateImagesHint": "info · 同一图片资源在多处使用；count 是次数，contentImageTotal 是内容图总数。尺寸和 alt 差异仅供参考，不代表使用错误；总览、局部探索和详情可以复用同图。本项不要求换图、减少展示数量或修改布局。",
+      "reportSource": "cdp"
+    }
+  },
+  "engine": "chrome_cli",
+  "chromiumExec": "C:\\Users\\itxinfei/AppData/Local/ms-playwright\\chromium_headless_shell-1208\\chrome-headless-shell-win64\\chrome-headless-shell.exe",
+  "engineDegraded": true,
+  "engineDegradedReason": "playwright 未装",
+  "elapsedSec": 19.21,
+  "schemaVersion": 2,
+  "status": "pass",
+  "engineInfo": {
+    "name": "chrome_cli",
+    "degraded": true,
+    "degradedReasons": [
+      "playwright 未装"
+    ]
+  },
+  "input": {
+    "original": "D:\\MyCode\\pinda-tms\\docs\\index.html",
+    "resolvedPath": "D:\\MyCode\\pinda-tms\\docs\\index.html",
+    "baseUrl": "file:///D:/MyCode/pinda-tms/docs/index.html",
+    "protocol": "file",
+    "cwd": "D:\\MyCode\\pinda-tms",
+    "mediaMode": {
+      "reducedMotion": true
+    }
+  },
+  "artifacts": {
+    "screenshots": [
+      {
+        "viewport": "desktop",
+        "tiles": [
+          "D:\\MyCode\\pinda-tms\\docs\\_shots\\index_desktop_p1of4.jpg",
+          "D:\\MyCode\\pinda-tms\\docs\\_shots\\index_desktop_p2of4.jpg",
+          "D:\\MyCode\\pinda-tms\\docs\\_shots\\index_desktop_p3of4.jpg",
+          "D:\\MyCode\\pinda-tms\\docs\\_shots\\index_desktop_p4of4.jpg"
+        ],
+        "visualCoverage": {
+          "complete": true,
+          "reason": null
+        }
+      },
+      {
+        "viewport": "mobile",
+        "tiles": [
+          "D:\\MyCode\\pinda-tms\\docs\\_shots\\index_mobile_p1of7.jpg",
+          "D:\\MyCode\\pinda-tms\\docs\\_shots\\index_mobile_p2of7.jpg",
+          "D:\\MyCode\\pinda-tms\\docs\\_shots\\index_mobile_p3of7.jpg",
+          "D:\\MyCode\\pinda-tms\\docs\\_shots\\index_mobile_p4of7.jpg",
+          "D:\\MyCode\\pinda-tms\\docs\\_shots\\index_mobile_p5of7.jpg",
+          "D:\\MyCode\\pinda-tms\\docs\\_shots\\index_mobile_p6of7.jpg",
+          "D:\\MyCode\\pinda-tms\\docs\\_shots\\index_mobile_p7of7.jpg"
+        ],
+        "visualCoverage": {
+          "complete": true,
+          "reason": null
+        }
+      }
+    ]
+  },
+  "summary": {
+    "blocker": 0,
+    "error": 0,
+    "warning": 0,
+    "info": 2
+  },
+  "findings": [
+    {
+      "ruleId": "duplicateImagesWarning",
+      "severity": "info",
+      "kind": "content",
+      "viewport": "desktop",
+      "selector": null,
+      "evidence": {
+        "count": 2,
+        "contentImageTotal": 14,
+        "sameRenderedSize": false,
+        "distinctAlts": 2,
+        "sizes": [
+          "880x461",
+          "510x268"
+        ],
+        "alts": [
+          "心飞物流TMS 工作台仪表盘真实截图",
+          "工作台仪表盘截图"
+        ],
+        "src": "file:///D:/MyCode/pinda-tms/docs/screenshots/admin-dashboard.png"
+      },
+      "dedupeKey": "duplicateImagesWarning|desktop||0"
+    },
+    {
+      "ruleId": "duplicateImagesWarning",
+      "severity": "info",
+      "kind": "content",
+      "viewport": "mobile",
+      "selector": null,
+      "evidence": {
+        "count": 2,
+        "contentImageTotal": 14,
+        "sameRenderedSize": false,
+        "distinctAlts": 2,
+        "sizes": [
+          "350x184",
+          "328x173"
+        ],
+        "alts": [
+          "心飞物流TMS 工作台仪表盘真实截图",
+          "工作台仪表盘截图"
+        ],
+        "src": "file:///D:/MyCode/pinda-tms/docs/screenshots/admin-dashboard.png"
+      },
+      "dedupeKey": "duplicateImagesWarning|mobile||0"
+    }
+  ],
+  "prioritizedActions": [],
+  "reportPath": "D:\\MyCode\\pinda-tms\\docs\\_shots\\report.json"
+}

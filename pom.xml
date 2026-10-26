@@ -25,6 +25,7 @@
         <module>xfwl-service-api</module>
         <module>xfwl-web</module>
         <module>xfwl-dispatch</module>
+        <module>xfwl-optimizer</module>
         <module>xfwl-aggregation</module>
         <module>xfwl-netty</module>
         <module>xfwl-gateway</module>
@@ -61,6 +62,8 @@
         <commons-io.version>2.17.0</commons-io.version>
         <!-- Drools（xfwl-oms 运费规则；8.38 为 8.x 最高、已 jakarta 化，纯 KIE API 编程式装配） -->
         <drools.version>8.38.0.Final</drools.version>
+        <!-- Google OR-Tools（xfwl-optimizer 智能配载/排线；Apache-2.0，含平台原生库） -->
+        <ortools.version>9.12.4544</ortools.version>
         <!-- HttpClient 4（xfwl-oms HttpRequestUtil 过渡使用，Boot4 BOM 已不托管；迁 5 需重写工具类） -->
         <httpclient.version>4.5.14</httpclient.version>
         <!-- MapStruct：编译期 DTO/Entity 映射，替代 BeanUtils.copyProperties（全栈 238 处，逐步迁移） -->
@@ -208,6 +211,12 @@
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>
+            </dependency>
+            <!-- Google OR-Tools（xfwl-optimizer 约束求解/容量配载；版本统一在此锁定） -->
+            <dependency>
+                <groupId>com.google.ortools</groupId>
+                <artifactId>ortools-java</artifactId>
+                <version>${ortools.version}</version>
             </dependency>
             <!-- Commons IO（Boot4 BOM 不托管，统一版本） -->
             <dependency>

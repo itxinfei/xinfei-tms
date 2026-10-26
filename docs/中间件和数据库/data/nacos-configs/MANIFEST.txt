@@ -5,6 +5,7 @@ xfwl-base.yml	xinfei-tms	yaml
 xfwl-dispatch.yml	xinfei-tms	yaml
 xfwl-gateway.yml	xinfei-tms	yaml
 xfwl-netty.yml	xinfei-tms	yaml
+xfwl-optimizer.yml	xinfei-tms	yaml
 xfwl-oms.yml	xinfei-tms	yaml
 xfwl-user.yml	xinfei-tms	yaml
 xfwl-web-courier.yml	xinfei-tms	yaml

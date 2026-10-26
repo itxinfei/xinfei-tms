@@ -1,0 +1,33 @@
+# xfwl-optimizer 无状态智能求解服务配置（Nacos dataId: xfwl-optimizer.yml, group: xinfei-tms）
+# 服务只注册 Nacos、提供内网 REST/JSON；不连接 MySQL/Redis/RabbitMQ，也不直接写业务库。
+server:
+  port: 8193
+
+xfwl:
+  optimizer:
+    # 默认规则引擎；OR-Tools 必须在 Linux 镜像内完成原生库 smoke test 后再灰度开启。
+    default-engine: RULE
+    preview-time-limit-ms: 5000
+    async-time-limit-ms: 30000
+    max-order-count: 500
+    max-vehicle-count: 80
+    # 开启 OR-Tools 后，默认同时跑规则引擎做对照；规则引擎永远是可降级兜底。
+    compare-rule: true
+    # 硬约束安全系数：载重 98%、体积 85%，避免把理论容量用满导致现场无法装车。
+    weight-safety-factor: 0.98
+    volume-fill-factor: 0.85
+    full-threshold-percent: 90
+    engines:
+      ortools:
+        enabled: false
+        version: 9.12.4544
+        smoke-on-startup: false
+      timefold:
+        # P2 仅允许 Timefold Community（Apache-2.0），禁止 enterprise 坐标。
+        enabled: false
+        version: not-bundled
+
+management:
+  endpoint:
+    health:
+      show-details: always

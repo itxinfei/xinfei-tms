@@ -106,6 +106,16 @@ docs/需求文档/_archive/
 docs/需求文档/57-账号密码与凭据总表.md
 docs/需求文档/99-任务认领台账.md
 
+# ===== 从 Git 索引中永久屏蔽（已取消跟踪，保留本地，禁止提交）=====
+# 内部需求文档 - 76 份 SRS 文档
+docs/需求文档/_archive/
+# 部署脚本与 Docker/Compose 文件
+deploy/
+# CI 配置脚本
+ci/
+# 内网 Gitea 配置（workflows 已保留，其余目录屏蔽）
+.gitea/
+
 # 中间件与数据库（开源分发版，2026-10-21 脱敏后入库）
 # 原 2026-10-14 规则为整目录禁入，现改为开源版放行；口令均已脱敏为 ********
 # data/ 目录下为导出的演示数据（MySQL/Redis/Nacos/RabbitMQ），供开源用户 docker 部署还原
@@ -188,3 +198,15 @@ tools/dist/
 
 # 签出的密钥文件（含客户实名/体验码批次，绝不入库）
 license-*.txt
+
+
+# ===== 2026-10-26 公开仓库卫生：与开源项目无关的本地散件，已取消跟踪，禁止再加回 =====
+# （用户定规：以后把任何新文件关联进 git 须先经用户同意）
+# 根目录 agent 一次性验证截图（captcha/dispatch/login/map-lines 等调试产物）
+/*.png
+# 服务器 docker 守护进程配置（运维本机文件）
+/docker-daemon.json
+# GPS 轨迹调试数据 dump（含测试手机号/车牌）
+/latest.json
+# MCP 一键安装脚本（含真实第三方 API Key，严禁入库；key 需轮换）
+docs/install-mcp.ps1

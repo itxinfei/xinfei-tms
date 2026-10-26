@@ -1,0 +1,8 @@
+# Docker 网络专用 profile：容器内通过 compose 网络访问 Nacos。
+spring:
+  cloud:
+    nacos:
+      discovery:
+        server-addr: nacos:8848
+      config:
+        server-addr: nacos:8848
