@@ -1,10 +1,10 @@
 <div align="center">
 
-# 🚚 Xinfei Logistics TMS
+# Xinfei Logistics TMS
 
 <p>
   <b>An Open-Source Transportation Management System (TMS) for carriers &amp; forwarders</b><br/>
-  <span>Full-process closed loop · 4-end synergy · Microservices · Ready to run</span>
+  <span>Admin console plus three mobile apps, running from booking to settlement</span>
 </p>
 
 <p>
@@ -42,33 +42,31 @@
 
 <p align="center"><a href="README.md">简体中文</a> · <b>English</b></p>
 
-> *Xinfei TMS — Open-source Transportation Management System with 4-end synergy, powered by JDK 25 + Spring Boot 4.1.1 + Vue 3.5.*
-
-> **Xinfei TMS** is a **4-end synergistic** (Admin + Customer + Courier + Driver) open-source Transportation Management System built on **JDK 25 + Spring Boot 4.1.1 + Vue 3.5**, covering the full chain: booking → order → intelligent dispatch → operations → tracking → proof of delivery. Drools rule engine drives intelligent dispatch, Netty powers self-built GPS tracking ingestion, Sa-Token provides multi-tenant SaaS readiness — order management, load planning, dispatch, driving management, GPS vehicle tracking and data reporting, all in one system for operational efficiency and cost control.
+> Xinfei TMS is an open-source transportation management system: the admin console and the customer, courier and driver apps share one backend, built on JDK 25 + Spring Boot 4.1.1 + Vue 3.5. The chain runs from booking, orders, intelligent dispatch and operations through tracking to proof of delivery. Dispatch rules live in Drools, tracking ingestion is a self-built Netty service, and auth is Sa-Token with multi-tenancy.
 
 <p align="center">
-<b><a href="#sec-tech"><code>14</code></a></b> microservices · <b><code>4</code></b> apps · <b><code>101</code></b> functional requirements · <b><code>55</code></b> database tables · <b><code>27</code></b> technologies · full business closed loop
+<b><a href="#sec-tech"><code>15</code></a></b> microservices · <b><code>4</code></b> apps · <b><code>106</code></b> functional requirements · <b><code>71</code></b> database tables · <b><code>27</code></b> technologies
 </p>
 
 <p align="center">
-🔗 <b>Live demo</b>: <a href="https://itxinfei.github.io/xinfei-tms/" target="_blank">https://itxinfei.github.io/xinfei-tms/</a> ｜ Account <code>admin / 123456</code>
+<b>Live demo</b>: <a href="https://itxinfei.github.io/xinfei-tms/" target="_blank">https://itxinfei.github.io/xinfei-tms/</a> ｜ Account <code>admin / 123456</code>
 </p>
 
 ---
 
-## 📑 Table of Contents
+## Table of Contents
 
 - [1. What &amp; Why](#sec-intro)
-- [2. Highlights](#sec-advantages)
-- [3. Pain Points We Solve](#sec-pain)
-- [4. Four-End Synergy](#sec-ends)
+- [2. Who It's For and What's Different](#sec-advantages)
+- [3. Pain Points and What It Does About Them](#sec-pain)
+- [4. The Four Apps](#sec-ends)
 - [5. Feature Overview](#sec-features)
-- [6. Technical Solution](#sec-tech)
+- [6. Technical Approach](#sec-tech)
 - [7. Quick Start](#sec-quickstart)
 - [8. Screenshots](#sec-screens)
 - [9. Documents](#sec-docs)
 - [10. Pre-built VM Image](#sec-vm)
-- [11. Business Services &amp; Contact](#sec-contact)
+- [11. Licensing, Services and Contact](#sec-contact)
 - [12. Milestones](#sec-milestones)
 - [13. FAQ](#sec-faq)
 - [14. Contributing](#sec-contrib)
@@ -81,33 +79,33 @@
 
 The four most common logistics business models are **express, less-than-truckload, dedicated lines and third-party logistics (3PL)**. Regardless of the model, the core pain points are the same: vehicles, drivers and routes are scattered and hard to manage; the transport process is opaque; dispatch and billing rely on manual work; cost and service-level performance cannot be evaluated.
 
-Xinfei TMS was built to solve exactly this — it moves the whole chain of "resource preparation → ordering → dispatch → transport → delivery → POD → settlement" into one system, with comprehensive statistics and evaluation of vehicles, drivers and routes, helping enterprises **improve operational efficiency, reduce transport costs and stay ahead in a competitive market**.
+Xinfei TMS puts resource preparation, ordering, dispatch, transport, delivery, signing and settlement into one flow. Vehicle, driver and route data sit in one place, and statistics and evaluation reports come out of it.
 
-> 💡 **Why this project?** Commercial TMS products are either **too expensive** (annual fees of ¥30K–300K), **too outdated** (JDK 8 + Vue 2), or **too heavy** (6-month implementation cycles). Xinfei TMS aims to be the **third option**: open source and free, full-chain closed loop, cutting-edge stack, 4-end synergy — ready to run out of the box, friendly to secondary development.
+> Commercial TMS products run ¥30K–300K a year and take about six months to implement; most open-source ones still sit on JDK 8 + Vue 2. This project publishes its source and is free for personal learning and research. The business from ordering to settlement is implemented here, the stack is current, and all four apps ship in the repo, so it runs once cloned and leaves room for secondary development.
 
 ---
 
 <a id="sec-advantages"></a>
 
-## 2. ✨ Highlights
+## 2. Who It's For and What's Different
 
-### 2.1 Six Differentiators
+### 2.1 Six Points
 
-| # | Highlight | Why others don't have it |
+| # | Point | Note |
 | --- | --- | --- |
-| 1 | **4-End Synergy** | Admin + Customer + Courier + Driver apps covering all roles — most open-source TMS only ship an admin console |
-| 2 | **JDK 25 + SB 4.1.1 + Vue 3.5** | The most modern stack among similar open-source TMS; most still sit on JDK 8 + SB 2.x + Vue 2 |
-| 3 | **Drools + XXL-Job Intelligent Dispatch** | Rule-engine driven dispatch &amp; freight calculation instead of hard-coded if-else; distributed scheduling replaces Quartz |
-| 4 | **Netty Self-Built Tracking Ingestion** | No third-party SDK dependency; independent `xfwl-netty` microservice for high-concurrency device access |
-| 5 | **Sa-Token Multi-Tenancy** | SaaS-ready — one codebase serving multiple tenants |
-| 6 | **Clear Evolution Roadmap** | Kafka → TDengine/鹰眼 → OR-Tools → Spring AI planned; this is not a "ship and stop" project |
+| 1 | **4 ends, one backend** | Admin, customer, courier and driver apps; most open-source TMS ship only an admin console |
+| 2 | **JDK 25 + Spring Boot 4.1.1 + Vue 3.5** | Current stack; most similar projects still sit on JDK 8 + SB 2.x + Vue 2 |
+| 3 | **Dispatch via Drools + XXL-Job** | Rules and freight calculation sit in a rule engine instead of if-else; distributed scheduling replaces Quartz |
+| 4 | **Self-built Netty tracking ingestion** | `xfwl-netty` is a separate service with no third-party SDK |
+| 5 | **Sa-Token multi-tenancy** | One codebase serving several tenants |
+| 6 | **Roadmap in the repo** | Kafka, TDengine / Yingyan, OR-Tools and Spring AI are planned; see §6.4 |
 
 ### 2.2 Who Is It For?
 
-- 🚛 **Small &amp; medium fleets** (10–50 vehicles): want digitalization but cannot afford ¥30K–300K annual fees
-- 🚀 **Logistics startups**: need a feature-complete, modern-stack, runnable 4-end TMS as an MVP
-- 📚 **Java learners**: one codebase to practice microservices + rule engine + Netty + multi-tenancy
-- 🔧 **Secondary developers**: deliver customized solutions to clients, saving 3 months of groundwork
+- **Small and medium fleets** (10–50 vehicles): want digitalization but cannot afford ¥30K–300K annual fees
+- **Logistics startups**: need a runnable 4-end TMS as an MVP
+- **Java learners**: one codebase to practice microservices, rule engine, Netty and multi-tenancy
+- **Secondary developers**: deliver custom work for clients without spending 3 months on groundwork
 
 ### 2.3 Comparison
 
@@ -152,22 +150,22 @@ Xinfei TMS was built to solve exactly this — it moves the whole chain of "reso
 
 <a id="sec-pain"></a>
 
-## 3. 🎯 Pain Points We Solve
+## 3. Pain Points and What It Does About Them
 
 | Industry pain point | How Xinfei TMS solves it |
 | --- | --- |
-| Vehicles / drivers / routes scattered, hard to evaluate | Centralized master data + multi-dimensional reports |
-| Manual dispatch, experience-based load planning | Scheduled dispatch + route planning auto-generating transport tasks &amp; trips |
-| Opaque in-transit process | GPS vehicle tracking + track replay, real-time status query |
-| Opaque freight calculation, error-prone | Drools dynamic rule engine — configurable &amp; auditable billing rules |
-| Customers have no way to track, no POD evidence | Customer app tracking + electronic POD / receipt evidence |
-| Data silos, manual statistics | Data aggregation + real-time analysis, automatic business reports |
+| Vehicles / drivers / routes scattered, hard to evaluate | Vehicles, drivers and routes sit in one master-data set; reports cover all of them |
+| Manual dispatch, experience-based load planning | Scheduled dispatch and route planning create transport tasks, then assign trips, vehicles and drivers |
+| Opaque in-transit process | GPS reports vehicle position, tracks can be replayed, and deviation, overspeed or offline events raise an alarm |
+| Opaque freight calculation, error-prone | Billing rules live in Drools, so changing a rule needs no code change and every calculation can be traced |
+| Customers have no way to track, no POD evidence | The customer app shows shipment status; signing keeps an electronic receipt and POD photos |
+| Data silos, manual statistics | Data lands in one place, and volume, service level and cost reports come out of it |
 
 ---
 
 <a id="sec-ends"></a>
 
-## 4. 📱 Four-End Synergy
+## 4. The Four Apps
 
 | End | Name | Users | Core capabilities |
 | --- | --- | --- | --- |
@@ -180,15 +178,15 @@ Xinfei TMS was built to solve exactly this — it moves the whole chain of "reso
 
 <a id="sec-features"></a>
 
-## 5. 🔍 Feature Overview
+## 5. Feature Overview
 
 ### 5.1 End-to-End Business Flow
 
 ![Business flow](docs/business-flow.png)
 
 ```
-Booking 📦 → Order creation 📋 → Intelligent dispatch 🤖 (Drools) → Driver accepts 🚚
-→ Operations ⚙️ → Tracking 📍 (Netty) → POD ✅ → Settlement 💰
+Booking → Order creation → Intelligent dispatch (Drools) → Driver accepts
+→ Operations → Tracking (Netty) → POD → Settlement
 ```
 
 ### 5.2 Core Modules
@@ -212,13 +210,13 @@ Booking 📦 → Order creation 📋 → Intelligent dispatch 🤖 (Drools) → 
 
 <a id="sec-tech"></a>
 
-## 6. 🏗 Technical Solution
+## 6. Technical Approach
 
 ### 6.0 Project Structure
 
 ```
 xinfei-tms/
-├── Microservices (14)
+├── Microservices (15)
 │   ├── xfwl-gateway/           # Unified gateway (Spring Cloud Gateway)
 │   ├── xfwl-auth/              # Auth center (Sa-Token + multi-tenant)
 │   ├── xfwl-base/              # Master data (org / vehicle / line / cargo)
@@ -229,6 +227,7 @@ xinfei-tms/
 │   ├── xfwl-file-server/       # Attachments (POD photos upload/view, no DB)
 │   ├── xfwl-netty/             # Tracking ingestion (Netty TCP)
 │   ├── xfwl-aggregation/       # Data aggregation
+│   ├── xfwl-optimizer/         # Load planning (OR-Tools + rule engine)
 │   └── xfwl-web/               # BFF layer (4-end APIs)
 │       ├── xfwl-web-manager/   #   Admin BFF
 │       ├── xfwl-web-courier/   #   Courier BFF
@@ -251,13 +250,13 @@ xinfei-tms/
 
 ![System architecture](docs/system-arch.png)
 
-> Four layers: **Presentation** (Admin Vue3 + mobile uni-app) → **Gateway** (Spring Cloud Gateway, Sa-Token auth + Same-Token anti-direct-access) → **Service** (14 business microservices, Nacos registry/config) → **Data** (MySQL single-db-by-domain + Redis + RabbitMQ).
+> The system has four layers. The presentation layer is the admin console (Vue 3) and the three mobile apps (uni-app). The gateway layer is Spring Cloud Gateway, which handles Sa-Token auth and Same-Token anti-direct-access. The service layer is 15 business microservices registered and configured through Nacos. The data layer is a single MySQL database split by domain, plus Redis and RabbitMQ.
 
 ### 6.2 Microservice Architecture
 
 ![Microservice architecture](docs/microservice-arch.png)
 
-> Microservices split by business domain: `xfwl-auth`, `xfwl-gateway`, `xfwl-base`, `xfwl-oms`, `xfwl-dispatch`, `xfwl-work`, `xfwl-netty`, `xfwl-aggregation`, etc., communicating via OpenFeign, registered &amp; discovered via Nacos.
+> Microservices split by business domain: `xfwl-auth`, `xfwl-gateway`, `xfwl-base`, `xfwl-oms`, `xfwl-dispatch`, `xfwl-work`, `xfwl-netty`, `xfwl-aggregation`, `xfwl-optimizer`, etc., communicating via OpenFeign, registered and discovered through Nacos.
 
 ### 6.3 Technology Architecture
 
@@ -316,6 +315,7 @@ xinfei-tms/
 | **Sa-Token + JWT multi-tenant auth** | Unified login, stateless auth, multi-tenant &amp; captcha |
 | **Spring Cloud Gateway** | Routing, login-state validation &amp; anti-direct-access |
 | **Netty** | High-concurrency TCP channel for tracking reporting &amp; device access |
+| **OR-Tools 9.12 (`xfwl-optimizer`)** | Load-plan solving; falls back to the rule engine when OR-Tools is unavailable |
 | **Baidu Map** | Address resolution, distance calculation, track display |
 | **Druid connection pool** | Connection management &amp; SQL monitoring |
 
@@ -323,7 +323,7 @@ xinfei-tms/
 
 | Choice | Why not the alternative? |
 | --- | --- |
-| **Sa-Token** over Shiro | Lighter, native multi-tenancy, complete Chinese docs, no Boot 3 compatibility baggage |
+| **Sa-Token** over Shiro | Lighter, native multi-tenancy, complete Chinese docs, no Boot 4 compatibility baggage |
 | **XXL-Job** over Quartz | Distributed scheduling with built-in admin console; Quartz means building your own scheduler |
 | **Drools** over if-else | Rules are visible, hot-reloadable, no redeploy needed |
 | **Single-db-by-domain** over 8 databases | Lower dev/small-scale ops cost; evolve to time-series DB at scale |
@@ -357,7 +357,7 @@ public class LocationServerHandler extends SimpleChannelInboundHandler<ByteBuf> 
 
 #### 6.4.4 Evolution Roadmap (Planned)
 
-Reviewed and approved items, not yet landed; batched by priority (see the refactoring plan &amp; doc 《53》R2):
+Reviewed and approved, not yet landed, grouped by priority:
 
 | Technology | Purpose | Priority |
 | --- | --- | --- |
@@ -368,7 +368,7 @@ Reviewed and approved items, not yet landed; batched by priority (see the refact
 | **Kafka** | Track pipeline (Netty → Kafka → time-series store) | P2 mid-term |
 | **Debezium CDC** | binlog change capture, MySQL → Kafka → ES / Doris sync | P2 mid-term |
 | **Elasticsearch** | Waybill multi-condition &amp; fuzzy search | P2 mid-term |
-| **Google OR-Tools** | VRP optimization (CVRP / VRPTW) for dispatch | P2 mid-term |
+| **Google OR-Tools** | VRP optimization (CVRP / VRPTW); load-plan solving already runs in `xfwl-optimizer` | P2 mid-term |
 | **Apache Doris OLAP** | Reports &amp; analytics, MySQL-protocol compatible | P2 mid-term |
 | **Baidu Yingyan** | Track correction &amp; geofencing | P2 mid-term |
 | **Spring AI 2.0** | LLM chat / RAG / agent orchestration for smart customer service | P3 long-term |
@@ -378,7 +378,7 @@ Reviewed and approved items, not yet landed; batched by priority (see the refact
 
 ### 6.5 Database Design
 
-After the full refactor the system converges to a **single MySQL database** (`xinfei_tms`), table-prefixed by business domain, splittable per domain at scale:
+Business tables all live in **one MySQL database** (`xinfei_tms`), prefixed by business domain, and can be split per domain as volume grows:
 
 | Domain | Main tables |
 | --- | --- |
@@ -393,7 +393,7 @@ After the full refactor the system converges to a **single MySQL database** (`xi
 
 <a id="sec-quickstart"></a>
 
-## 7. 🚀 Quick Start
+## 7. Quick Start
 
 ### 7.1 Environment &amp; Stack
 
@@ -420,7 +420,7 @@ docker-compose up -d        # start middleware: MySQL / Redis / RabbitMQ / Nacos
 
 <a id="sec-screens"></a>
 
-## 8. 📸 Screenshots
+## 8. Screenshots
 
 > Screenshots are from a real running environment (updated 2026-10-15). Admin core business pages and the 3 mobile apps are all captured.
 
@@ -566,7 +566,7 @@ docker-compose up -d        # start middleware: MySQL / Redis / RabbitMQ / Nacos
 
 <a id="sec-docs"></a>
 
-## 9. 📚 Documents
+## 9. Documents
 
 In-repo resources you can browse directly; internal design documents (requirements, API contracts, data dictionary) are **not distributed with the source repo** — contact the author if needed:
 
@@ -585,25 +585,25 @@ In-repo resources you can browse directly; internal design documents (requiremen
 
 <a id="sec-vm"></a>
 
-## 10. 📦 Pre-built VM Image
+## 10. Pre-built VM Image
 
-> This project's learning &amp; deployment **strongly rely on a pre-built VM image**. Everything needed to run the system is **pre-installed and persisted inside the image** — **all middleware, database data and the full configuration required by the microservices live in this VM**, ready to use out of the box. No external setup or data migration is needed.
+> Learning and deployment both depend on the pre-built VM image. Middleware, database data and the configuration each service needs are already inside it, so there is no separate environment to set up and no data to migrate.
 
-### 10.1 What's inside the image (data + config shipped together)
+### 10.1 What's inside the image
 
 | Category | Component | State inside the image |
 | --- | --- | --- |
-| Database | MySQL 8.0 | Business DB `xinfei_tms` (all tables + demo data) and scheduler DB `xxl_job`, **persisted on disk** |
-| Cache | Redis 7 | Sa-Token sessions / J2Cache L2 cache, `dump.rdb` **persisted** |
-| Message queue | RabbitMQ | Exchanges / queues / accounts **persisted** |
-| Registry / Config | Nacos | Namespace `pinda-tms`; **all microservice configs (per-service dataIds) are already published in the image** |
+| Database | MySQL 8.0 | Business DB `xinfei_tms` (all tables + demo data) and scheduler DB `xxl_job`, persisted on disk |
+| Cache | Redis 7 | Sa-Token sessions / J2Cache L2 cache, `dump.rdb` persisted |
+| Message queue | RabbitMQ | Exchanges / queues / accounts persisted |
+| Registry / Config | Nacos | Namespace `pinda-tms`; all microservice configs (per-service dataIds) are already published in the image |
 | Job scheduling | XXL-Job | Scheduler center + executor config ready |
-| Reverse proxy | Nginx | Frontend static assets + backend gateway proxy, **pre-configured in the image** |
+| Reverse proxy | Nginx | Frontend static assets + backend gateway proxy, pre-configured in the image |
 | Source / CI | Gitea + Runner | Project source repo and CI/CD pipeline built-in |
 
 ### 10.2 Key points
 
-- **Data is part of the image**: MySQL / Redis / RabbitMQ business data, the full Nacos configuration, and each microservice's `.env` are all delivered with the VM — import and run, no dependency on any external service.
+- The data is in the image: MySQL / Redis / RabbitMQ business data, the Nacos configuration and each microservice's `.env` are all included, so nothing has to be loaded separately and nothing points at an external service.
 - The VM's internal IP is `192.168.20.130` (VMware NAT segment); accessible right after import. To change the IP/segment, see `docs/05-部署文档.md`.
 - Default accounts: `pdwl / 123456` (SSH), `MySQL root / 123456`; for the application admin login, see the `docs/` login notes or contact the author.
 
@@ -615,7 +615,7 @@ The image is distributed via **Baidu Netdisk**; the link is **not public** — c
 
 <a id="sec-contact"></a>
 
-## 11. 🤝 Business Services &amp; Contact
+## 11. Licensing, Services and Contact
 
 <div align="center">
 
@@ -623,22 +623,22 @@ The image is distributed via **Baidu Netdisk**; the link is **not public** — c
 <tr>
 <td align="center" width="50%">
 
-### 11.1 🛠️ Paid Technical Services
+### 11.1 Paid Technical Services
 
 This project is licensed under **BUSL-1.1**: free for personal learning, research, teaching and graduation projects; commercial use (production, private deployment, providing services, etc.) requires a commercial license from the author. The author also offers commercial support:
 
-- 🔧 **Secondary development / customization** (platform integration, new features, UI adjustments)
-- 🚀 **Private deployment delivery** (server, domain, environment, incl. VM image)
-- 🎓 **Project walkthrough / thesis Q&amp;A** (architecture, source code, interview topics)
-- 📦 **Full database init scripts + demo data**
-- 💬 Daily technical Q&amp;A &amp; long-term maintenance support
+- **Secondary development / customization** (platform integration, new features, UI adjustments)
+- **Private deployment delivery** (server, domain, environment, incl. VM image)
+- **Project walkthrough / thesis Q&amp;A** (architecture, source code, interview topics)
+- **Full database init scripts + demo data**
+- Daily technical Q&amp;A and long-term maintenance support
 
-<b>👉 Business contact QQ: <code>747011882</code></b>
+<b>Business contact QQ: <code>747011882</code></b>
 
 </td>
 <td align="center" width="50%">
 
-### 11.2 💬 Join the Community
+### 11.2 Join the Community
 
 <img src="docs/心飞为你飞.jpg" width="170" alt="WeChat QR code" style="border-radius:8px;border:1px solid #e5e7eb;">
 
@@ -646,8 +646,8 @@ This project is licensed under **BUSL-1.1**: free for personal learning, researc
 
 <br>
 
-🔗 Repo: [gitee.com/itxinfei/xinfei-tms](https://gitee.com/itxinfei/xinfei-tms)
-🏠 Author: [gitee.com/itxinfei](https://gitee.com/itxinfei)
+Repo: [gitee.com/itxinfei/xinfei-tms](https://gitee.com/itxinfei/xinfei-tms)<br/>
+Author: [gitee.com/itxinfei](https://gitee.com/itxinfei)
 
 </td>
 </tr>
@@ -655,21 +655,23 @@ This project is licensed under **BUSL-1.1**: free for personal learning, researc
 
 <br>
 
-### 11.3 ⭐ If this project helps you, please give it a Star — it means a lot to me!
+### 11.3 If this project helps you
+
+A Star is enough.
 
 </div>
 
-### 11.4 ☕ Sponsorship
+### 11.4 Sponsorship
 
-> This project is **developed with AI assistance**, and continuous iteration requires significant time and AI tool costs. If Xinfei TMS helps you, please consider sponsoring the author to keep it updated.
+> This project is developed with AI assistance, and further iteration takes both time and AI tool costs. If Xinfei TMS has been useful to you, sponsoring the author keeps it moving.
 
-> 📌 **Sponsorship contact**: add **QQ: `747011882`** to discuss (sponsor list will be updated in this README); WeChat / Alipay QR-code entry coming soon.
+> **Sponsorship contact**: add QQ `747011882` to discuss (sponsors will be listed in this README); WeChat / Alipay QR codes are still being prepared.
 
 ---
 
 <a id="sec-milestones"></a>
 
-## 12. 🗓️ Milestones
+## 12. Milestones
 
 | Time | Progress |
 | --- | --- |
@@ -683,7 +685,7 @@ This project is licensed under **BUSL-1.1**: free for personal learning, researc
 
 <a id="sec-faq"></a>
 
-## 13. ❓ FAQ
+## 13. FAQ
 
 **Q: Can I use it commercially?**
 A: Free for personal learning, research, teaching and graduation projects; commercial use by enterprises (production environment, private deployment, providing services, etc.) requires a commercial license from the author (BUSL-1.1).
@@ -695,7 +697,7 @@ A: BUSL-1.1 is a newer license not yet indexed by Gitee's badge catalog — a pl
 A: A new project in 2026 carries no legacy baggage; we adopt the latest LTS to avoid forced upgrades later.
 
 **Q: Is there documentation?**
-A: Yes — see 「9. Documents」: architecture / stack / features / deployment / dev-environment guides.
+A: Yes. See "9. Documents": architecture view sources, deployment assets, brand assets and the full license text ship with the repo. Internal requirements and design documents are not distributed with the source; contact the author if you need them.
 
 **Q: Does the mobile side support mini-programs?**
 A: uni-app 3-end architecture (App / H5 / Mini-Program); currently H5-first. A real appid is required before publishing mini-programs.
@@ -704,7 +706,7 @@ A: uni-app 3-end architecture (App / H5 / Mini-Program); currently H5-first. A r
 
 <a id="sec-contrib"></a>
 
-## 14. 🤝 Contributing
+## 14. Contributing
 
 <div align="center">
 
@@ -717,6 +719,4 @@ Issues and Pull Requests are welcome! For environment setup, commit conventions,
 
 ---
 
-<p align="center"><sub>Open-source TMS · Transportation Management System · Logistics · Fleet Management · Dispatch · Tracking · Spring Cloud Microservices · JDK 25 · Vue 3 · uni-app</sub></p>
-
-<p align="center"><sub>Xinfei Logistics TMS · Open-Source Transportation Management System · Full Process · 4-End Synergy · Microservices</sub></p>
+<p align="center"><sub>Xinfei Logistics TMS · Open-source transportation management system · Spring Cloud · JDK 25 · Vue 3 · uni-app</sub></p>
