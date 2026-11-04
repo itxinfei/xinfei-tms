@@ -1,0 +1,2 @@
+# Markdown 统一使用 LF 行尾，避免 Windows 检出后出现整文件的行尾差异
+*.md text eol=lf
