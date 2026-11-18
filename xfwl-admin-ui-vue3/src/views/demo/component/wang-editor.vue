@@ -4,7 +4,7 @@
     <el-button
       class="mb-[20px]"
       tag="a"
-      href="https://gitee.com/youlaiorg/vue3-element-admin/blob/master/src/views/demo/component/wang-editor.vue"
+      href="https://gitee.com/itxinfei/xfwl/blob/master/src/views/demo/component/wang-editor.vue"
       target="_blank"
       link
       type="info"

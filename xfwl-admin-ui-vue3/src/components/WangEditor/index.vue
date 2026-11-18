@@ -1,9 +1,10 @@
 <!--
  * 基于 wangEditor-next 的富文本编辑器组件二次封装
- * 版权所属 © 2021-present 有来开源组织
+ * 心飞物流TMS 二次开发 © 2026 xinfei
  *
+ * 上游组件：vue3-element-admin（有来开源组织，MIT）
  * 开源协议：https://opensource.org/licenses/MIT
- * 项目地址：https://gitee.com/youlaiorg/vue3-element-admin
+ * 项目地址：https://gitee.com/itxinfei/xfwl
  *
  * 在使用时，请保留此注释，感谢您对开源的支持
 -->

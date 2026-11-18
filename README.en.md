@@ -233,6 +233,8 @@ xinfei-tms/
 │       ├── xfwl-web-courier/   #   Courier BFF
 │       ├── xfwl-web-customer/  #   Customer BFF
 │       └── xfwl-web-driver/    #   Driver BFF
+├── Monolith (coexists, zero code copy)
+│   └── xfwl-monolith/          # Single-process assembly: embedded gateway + Feign loopback
 ├── Support libs (2 jars)
 │   ├── xfwl-common/            # Common components (utils / context / interceptors)
 │   └── xfwl-service-api/       # Inter-service API contracts (Feign)
@@ -257,6 +259,19 @@ xinfei-tms/
 ![Microservice architecture](docs/microservice-arch.png)
 
 > Microservices split by business domain: `xfwl-auth`, `xfwl-gateway`, `xfwl-base`, `xfwl-oms`, `xfwl-dispatch`, `xfwl-work`, `xfwl-netty`, `xfwl-aggregation`, `xfwl-optimizer`, etc., communicating via OpenFeign, registered and discovered through Nacos.
+
+### 6.2.1 Monolith (xfwl-monolith)
+
+To lower the deployment and ops barrier for small and mid-sized customers, the repo also ships a **monolith** alongside the microservices, coexisting without interference:
+
+- **Zero business-code copy**: `xfwl-monolith` only does assembly; all Controller/Service/Mapper/Entity are reused from the microservice modules;
+- **Microservices untouched**: every adaptation lives in the monolith assembly layer, no microservice business or config files are changed;
+- **Zero frontend change**: the same Vue3 admin and uni-app, identical API contracts; only switch the proxy target from gateway `8760` to monolith `8080`;
+- **Embedded gateway**: `GatewayRoutingFilter` replicates the gateway routes and StripPrefix, injecting Same-Token, userid and tenantId headers;
+- **Feign loopback**: Nacos disabled; SimpleDiscoveryClient statically points the ~49 Feign clients to this process, with module prefixes hitting the right controllers and no hand-written delegates;
+- **Unified prefixes + security/exception replication**: `MonolithSecurityConfig` and `MonolithExceptionHandler` centralize login interception and HTTP error semantics; `MonolithSaTokenDao` keeps the KEEPTTL write compatible with old Redis (&lt; 6.0).
+
+> The monolith defaults to port 8080 (Tomcat) and Netty TCP 8192, using the single `xinfei_tms` database and the same Redis — one-command startup on a single machine; switch to microservices when horizontal scaling is needed.
 
 ### 6.3 Technology Architecture
 
@@ -405,7 +420,7 @@ Business tables all live in **one MySQL database** (`xinfei_tms`), prefixed by b
 ### 7.2 Run in Five Minutes
 
 ```bash
-git clone https://gitee.com/itxinfei/xinfei-tms.git
+git clone https://gitee.com/itxinfei/xfwl.git
 cd xinfei-tms
 docker-compose up -d        # start middleware: MySQL / Redis / RabbitMQ / Nacos
 # ① Initialize the database: DDL & seed scripts are bundled in the pre-built VM image (see "10. Pre-built VM Image");
@@ -415,6 +430,17 @@ docker-compose up -d        # start middleware: MySQL / Redis / RabbitMQ / Nacos
 ```
 
 > Expected 5–10 minutes. Detailed deployment, config &amp; secondary-development docs: see 「9. Documents」; a pre-built VM image (middleware pre-installed) is available from the author — see 「10. Pre-built VM Image」.
+
+### 7.3 Monolith One-Command Startup (no Nacos / multi-process)
+
+```bash
+# Prereq: reachable MySQL 8 (create xinfei_tms and import sql/ DDL & seed) and Redis
+mvn -pl xfwl-monolith package -DskipTests      # build the monolith fat jar
+java -jar xfwl-monolith/target/xfwl-monolith-1.0.0-SNAPSHOT.jar
+# Tomcat 8080 (HTTP) + Netty 8192 (TCP); point the frontend proxy to http://localhost:8080
+```
+
+> The monolith defaults to the DB and Redis on `192.168.20.130`. Override for local debugging with env vars: `MYSQL_HOST`, `REDIS_HOST`, `REDIS_PASSWORD`, `SERVER_PORT`.
 
 ---
 
@@ -646,7 +672,7 @@ This project is licensed under **BUSL-1.1**: free for personal learning, researc
 
 <br>
 
-Repo: [gitee.com/itxinfei/xinfei-tms](https://gitee.com/itxinfei/xinfei-tms)<br/>
+Repo: [gitee.com/itxinfei/xfwl](https://gitee.com/itxinfei/xfwl)<br/>
 Author: [gitee.com/itxinfei](https://gitee.com/itxinfei)
 
 </td>
@@ -710,8 +736,8 @@ A: uni-app 3-end architecture (App / H5 / Mini-Program); currently H5-first. A r
 
 <div align="center">
 
-<img src="https://gitee.com/itxinfei/xinfei-tms/badge/star.svg" alt="Gitee Stars"/>
-<img src="https://gitee.com/itxinfei/xinfei-tms/badge/fork.svg" alt="Gitee Forks"/>
+<img src="https://gitee.com/itxinfei/xfwl/badge/star.svg" alt="Gitee Stars"/>
+<img src="https://gitee.com/itxinfei/xfwl/badge/fork.svg" alt="Gitee Forks"/>
 
 </div>
 

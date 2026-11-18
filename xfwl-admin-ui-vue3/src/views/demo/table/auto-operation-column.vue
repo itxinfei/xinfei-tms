@@ -4,7 +4,7 @@
     <el-button
       class="mb-10"
       tag="a"
-      href="https://gitee.com/youlaiorg/vue3-element-admin/blob/master/src/views/demo/table/auto-operation-column.vue"
+      href="https://gitee.com/itxinfei/xfwl/blob/master/src/views/demo/table/auto-operation-column.vue"
       target="_blank"
       link
       type="info"

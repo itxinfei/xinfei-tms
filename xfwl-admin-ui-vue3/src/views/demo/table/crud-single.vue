@@ -3,7 +3,7 @@
     <div class="mb-10">
       <el-button
         tag="a"
-        href="https://gitee.com/youlaiorg/vue3-element-admin/blob/master/src/views/demo/table/crud-single.vue"
+        href="https://gitee.com/itxinfei/xfwl/blob/master/src/views/demo/table/crud-single.vue"
         target="_blank"
         link
         type="info"

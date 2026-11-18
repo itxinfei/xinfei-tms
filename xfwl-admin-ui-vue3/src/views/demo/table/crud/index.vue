@@ -3,7 +3,7 @@
     <div class="flex-x-between mb-10">
       <el-button
         tag="a"
-        href="https://gitee.com/youlaiorg/vue3-element-admin/blob/master/src/views/demo/table/crud/index.vue"
+        href="https://gitee.com/itxinfei/xfwl/blob/master/src/views/demo/table/crud/index.vue"
         target="_blank"
         link
         type="info"

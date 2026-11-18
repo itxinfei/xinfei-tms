@@ -234,6 +234,8 @@ xinfei-tms/
 │       ├── xfwl-web-courier/   #   快递员端 BFF
 │       ├── xfwl-web-customer/  #   客户端 BFF
 │       └── xfwl-web-driver/    #   司机端 BFF
+├── 单体版（与微服务并存，零代码复制）
+│   └── xfwl-monolith/          # 单进程装配层：内嵌网关 + Feign 回环，复用全部业务模块
 ├── 支撑库（2 个 jar）
 │   ├── xfwl-common/            # 公共组件（工具 / 上下文 / 拦截器）
 │   └── xfwl-service-api/       # 服务间 API 契约（Feign 接口）
@@ -258,6 +260,19 @@ xinfei-tms/
 ![微服务架构](docs/microservice-arch.png)
 
 > 微服务按业务域拆分：`xfwl-auth`（认证）、`xfwl-gateway`（网关）、`xfwl-base`（基础数据）、`xfwl-oms`（订单）、`xfwl-dispatch`（调度）、`xfwl-work`（作业）、`xfwl-netty`（轨迹接入）、`xfwl-aggregation`（聚合）、`xfwl-optimizer`（配载求解）等，通过 OpenFeign 互调，Nacos 统一注册发现。
+
+### 6.2.1 单体版（xfwl-monolith）
+
+为降低中小客户的部署与运维门槛，仓库在微服务版之外**同步提供单体版**，两者并存、互不影响：
+
+- **业务代码零复制**：`xfwl-monolith` 只做装配，Controller/Service/Mapper/Entity 全部复用微服务模块，不维护第二套业务逻辑；
+- **微服务版保持不动**：所有适配都在单体装配层，不修改微服务的业务与配置文件；
+- **前端零改动**：同一套 Vue3 管理端与 uni-app，API 契约完全一致，仅把代理目标从网关 `8760` 切到单体 `8080`；
+- **内嵌网关**：`GatewayRoutingFilter` 复刻网关路由表与 StripPrefix，并注入 Same-Token、userid、tenantId 头；
+- **Feign 回环**：禁用 Nacos，用 SimpleDiscoveryClient 把约 49 个 Feign 客户端静态指向本进程，配合模块前缀命中对应 Controller，无需手写委托；
+- **统一前缀 + 安全/异常复刻**：单体以 `MonolithSecurityConfig`、`MonolithExceptionHandler` 统一收口登录拦截与异常 HTTP 语义，并对老版本 Redis（&lt; 6.0）用 `MonolithSaTokenDao` 兼容 KEEPTTL 写法。
+
+> 单体默认端口 8080（Tomcat）、Netty TCP 8192，单库 `xinfei_tms` + 同一 Redis，适合单机一键启动；需要水平扩展时再升级到微服务部署。
 
 ### 6.3 技术架构
 
@@ -358,7 +373,7 @@ xinfei-tms/
 ### 7.1 五分钟跑起来
 
 ```bash
-git clone https://gitee.com/itxinfei/xinfei-tms.git
+git clone https://gitee.com/itxinfei/xfwl.git
 cd xinfei-tms
 docker-compose up -d        # 起中间件：MySQL / Redis / RabbitMQ / Nacos
 # ① 初始化数据库：建库与种子脚本随配套虚拟机镜像内置（见「10. 配套虚拟机」）；
@@ -368,6 +383,17 @@ docker-compose up -d        # 起中间件：MySQL / Redis / RabbitMQ / Nacos
 ```
 
 > 预计 5-10 分钟。部署、配置与二次开发说明见「9. 相关资料」；配套虚拟机镜像（中间件全预置）见「10. 配套虚拟机」，可向作者索取。
+
+### 7.2 单体版一键启动（无需 Nacos / 多进程）
+
+```bash
+# 前置：本地可连 MySQL 8（建库 xinfei_tms 并导入 sql/ 建表与种子）、Redis
+mvn -pl xfwl-monolith package -DskipTests      # 产出单体 fat jar
+java -jar xfwl-monolith/target/xfwl-monolith-1.0.0-SNAPSHOT.jar
+# Tomcat 8080（HTTP）+ Netty 8192（TCP），前端代理指向 http://localhost:8080 即可
+```
+
+> 单体默认连 `192.168.20.130` 的库与 Redis，本地调试可用环境变量覆盖：`MYSQL_HOST`、`REDIS_HOST`、`REDIS_PASSWORD`、`SERVER_PORT`。
 
 ---
 
@@ -598,7 +624,7 @@ docker-compose up -d        # 起中间件：MySQL / Redis / RabbitMQ / Nacos
 <sub>扫码关注微信公众号「心飞为你飞」</sub>
 
 
-仓库：[gitee.com/itxinfei/xinfei-tms](https://gitee.com/itxinfei/xinfei-tms)<br/>
+仓库：[gitee.com/itxinfei/xfwl](https://gitee.com/itxinfei/xfwl)<br/>
 作者主页：[gitee.com/itxinfei](https://gitee.com/itxinfei)
 
 </td>
@@ -699,7 +725,7 @@ A: uni-app 三端架构（App / H5 / 小程序），当前以 H5 为主，小程
 
 <div align="center">
 
-![Gitee Stars](https://gitee.com/itxinfei/xinfei-tms/badge/star.svg)
+![Gitee Stars](https://gitee.com/itxinfei/xfwl/badge/star.svg)
 
 </div>
 

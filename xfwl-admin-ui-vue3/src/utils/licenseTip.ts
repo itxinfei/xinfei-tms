@@ -8,7 +8,7 @@ import { useLicenseStore } from "@/stores";
 const TIP_LAST_KEY = "xinfei_license_tip_last";
 const TIP_INTERVAL_MS = 3 * 24 * 60 * 60 * 1000;
 
-const BUY_URL = "https://gitee.com/itxinfei/xinfei-tms#商业授权";
+const BUY_URL = "https://gitee.com/itxinfei/xfwl#商业授权";
 
 function throttleAllowed(): boolean {
   try {
