@@ -622,7 +622,7 @@ In-repo resources you can browse directly; internal design documents (requiremen
 | Database | MySQL 8.0 | Business DB `xinfei_tms` (all tables + demo data) and scheduler DB `xxl_job`, persisted on disk |
 | Cache | Redis 7 | Sa-Token sessions / J2Cache L2 cache, `dump.rdb` persisted |
 | Message queue | RabbitMQ | Exchanges / queues / accounts persisted |
-| Registry / Config | Nacos | Namespace `pinda-tms`; all microservice configs (per-service dataIds) are already published in the image |
+| Registry / Config | Nacos | Namespace `xinfei-tms`; all microservice configs (per-service dataIds) are already published in the image |
 | Job scheduling | XXL-Job | Scheduler center + executor config ready |
 | Reverse proxy | Nginx | Frontend static assets + backend gateway proxy, pre-configured in the image |
 | Source / CI | Gitea + Runner | Project source repo and CI/CD pipeline built-in |

@@ -575,7 +575,7 @@ java -jar xfwl-monolith/target/xfwl-monolith-1.0.0-SNAPSHOT.jar
 | 数据库 | MySQL 8.0 | 业务库 `xinfei_tms`（全部表与演示数据）、调度库 `xxl_job`，数据已落盘持久化 |
 | 缓存 | Redis 7 | Sa-Token 会话 / J2Cache 二级缓存，`dump.rdb` 已持久化 |
 | 消息队列 | RabbitMQ | 业务交换机 / 队列 / 账号定义已持久化 |
-| 注册 / 配置中心 | Nacos | 命名空间 `pinda-tms`，所有微服务的配置（含各服务 dataId）都已发布在镜像内 |
+| 注册 / 配置中心 | Nacos | 命名空间 `xinfei-tms`，所有微服务的配置（含各服务 dataId）都已发布在镜像内 |
 | 任务调度 | XXL-Job | 调度中心与执行器配置已就绪 |
 | 反向代理 | Nginx | 前端静态资源 + 后端网关反代，已在镜像内配置好 |
 | 源码 / CI | Gitea + Runner | 项目源码仓库与 CI/CD 流水线已内置 |
