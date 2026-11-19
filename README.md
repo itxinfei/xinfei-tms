@@ -8,6 +8,8 @@
 </p>
 
 <p>
+  <a href="https://gitee.com/itxinfei/xfwl/stargazers"><img src="https://gitee.com/itxinfei/xfwl/badge/star.svg?theme=gvp" alt="star"/></a>
+  <a href="https://gitee.com/itxinfei/xfwl/members"><img src="https://gitee.com/itxinfei/xfwl/badge/fork.svg?theme=gvp" alt="fork"/></a>
   <img src="docs/badges/license.svg" alt="License"/>
   <img src="docs/badges/spring-cloud.svg" alt="Spring Cloud"/>
   <img src="docs/badges/jdk.svg" alt="JDK 25"/>
