@@ -10,6 +10,8 @@
 <p>
   <a href="https://gitee.com/itxinfei/xfwl/stargazers"><img src="https://gitee.com/itxinfei/xfwl/badge/star.svg?theme=gvp" alt="star"/></a>
   <a href="https://gitee.com/itxinfei/xfwl/members"><img src="https://gitee.com/itxinfei/xfwl/badge/fork.svg?theme=gvp" alt="fork"/></a>
+  <a href="https://github.com/itxinfei/xinfei-tms"><img src="https://img.shields.io/badge/GitHub-xinfei--tms-181717?style=flat-square&logo=github&logoColor=white" alt="GitHub"/></a>
+  <a href="https://github.com/itxinfei/xinfei-tms/stargazers"><img src="https://img.shields.io/github/stars/itxinfei/xinfei-tms?style=flat-square&logo=github&color=yellow" alt="GitHub stars"/></a>
   <img src="docs/badges/license.svg" alt="License"/>
   <img src="docs/badges/spring-cloud.svg" alt="Spring Cloud"/>
   <img src="docs/badges/jdk.svg" alt="JDK 25"/>
