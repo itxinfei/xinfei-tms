@@ -8,7 +8,7 @@ netty:
 
 spring:
   rabbitmq:
-    host: 192.168.20.130
+    host: 192.168.20.88
     port: 5672
     username: ${RABBITMQ_USERNAME:xinfei}
     password: "${RABBITMQ_PASSWORD:123456}"

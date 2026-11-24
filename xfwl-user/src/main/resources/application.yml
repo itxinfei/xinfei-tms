@@ -23,14 +23,14 @@ spring:
     nacos:
       # 服务注册
       discovery:
-        server-addr: ${NACOS_SERVER_ADDR:192.168.20.130:8848}
+        server-addr: ${NACOS_SERVER_ADDR:192.168.20.88:8848}
         namespace: 1cb93ce4-dc0e-4730-b759-d35fd7ed93c3
         group: xinfei-tms
         username: ${NACOS_USERNAME:nacos}
         password: ${NACOS_PASSWORD:123456}
       # 配置中心
       config:
-        server-addr: ${NACOS_SERVER_ADDR:192.168.20.130:8848}
+        server-addr: ${NACOS_SERVER_ADDR:192.168.20.88:8848}
         namespace: 1cb93ce4-dc0e-4730-b759-d35fd7ed93c3
         group: xinfei-tms
         file-extension: yml
@@ -49,7 +49,7 @@ spring:
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${MYSQL_HOST:192.168.20.130}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:xinfei_tms}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://${MYSQL_HOST:192.168.20.88}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:xinfei_tms}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true
     username: ${MYSQL_USERNAME:root}
     password: ${MYSQL_PASSWORD:123456}
     druid:
@@ -80,7 +80,7 @@ spring:
   # 口径对齐 xfwl-dispatch/xfwl-auth/xfwl-gateway；Boot4 下键名为 spring.data.redis.*
   data:
     redis:
-      host: ${REDIS_HOST:192.168.20.130}
+      host: ${REDIS_HOST:192.168.20.88}
       port: ${REDIS_PORT:6379}
       database: ${REDIS_DATABASE:0}
       password: ${REDIS_PASSWORD:123456}

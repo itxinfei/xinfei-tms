@@ -16,14 +16,14 @@ spring:
       # 服务注册
       discovery:
         # 变量名与 deploy/apps/docker-compose.app.yml 的 nacos-env 锚点对齐
-        server-addr: ${NACOS_SERVER_ADDR:192.168.20.130:8848}
+        server-addr: ${NACOS_SERVER_ADDR:192.168.20.88:8848}
         namespace: 1cb93ce4-dc0e-4730-b759-d35fd7ed93c3
         group: xinfei-tms
         username: ${NACOS_USERNAME:nacos}
         password: ${NACOS_PASSWORD:123456}
       # 配置中心
       config:
-        server-addr: ${NACOS_SERVER_ADDR:192.168.20.130:8848}
+        server-addr: ${NACOS_SERVER_ADDR:192.168.20.88:8848}
         namespace: 1cb93ce4-dc0e-4730-b759-d35fd7ed93c3
         group: xinfei-tms
         file-extension: yaml
@@ -104,7 +104,7 @@ spring:
   # Redis（Sa-Token 会话 + Same-Token 读取）
   data:
     redis:
-      host: ${REDIS_HOST:192.168.20.130}
+      host: ${REDIS_HOST:192.168.20.88}
       port: ${REDIS_PORT:6379}
       database: ${REDIS_DATABASE:0}
       password: ${REDIS_PASSWORD:123456}

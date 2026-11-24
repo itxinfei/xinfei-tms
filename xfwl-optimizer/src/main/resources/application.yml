@@ -22,13 +22,13 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: ${NACOS_SERVER_ADDR:192.168.20.130:8848}
+        server-addr: ${NACOS_SERVER_ADDR:192.168.20.88:8848}
         namespace: 1cb93ce4-dc0e-4730-b759-d35fd7ed93c3
         group: xinfei-tms
         username: ${NACOS_USERNAME:nacos}
         password: ${NACOS_PASSWORD:123456}
       config:
-        server-addr: ${NACOS_SERVER_ADDR:192.168.20.130:8848}
+        server-addr: ${NACOS_SERVER_ADDR:192.168.20.88:8848}
         namespace: 1cb93ce4-dc0e-4730-b759-d35fd7ed93c3
         group: xinfei-tms
         file-extension: yml
