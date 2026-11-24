@@ -13,7 +13,7 @@
 
 | 中间件 | 镜像版本 | 端口 | 用途 |
 |---|---|---|---|
-| MySQL | `mysql:8.0` (8.0.46) | 3306 | 业务数据库（单库 `xinfei_tms`） |
+| MySQL | `mysql:8.4.11` | 3306 | 业务数据库（单库 `xinfei_tms`） |
 | Redis | `redis:7` | 6379 | 缓存 + 登录会话 |
 | Nacos | `nacos/nacos-server:v2.3.2` | 8848 / 9848 / 9849 | 注册中心 + 配置中心 |
 | RabbitMQ | `rabbitmq:3.12-management` | 5672 / 15672 | 消息队列 |
