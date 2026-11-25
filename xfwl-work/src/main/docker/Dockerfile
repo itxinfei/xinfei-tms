@@ -1,4 +1,4 @@
-FROM openjdk:8-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 
 ENV JAVA_OPTS="-Xmx256m -Xms128m"
 

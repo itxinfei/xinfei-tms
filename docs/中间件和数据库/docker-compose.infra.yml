@@ -52,7 +52,7 @@ services:
     network_mode: bridge
 
   redis:
-    image: redis:7
+    image: redis:8.10.3
     container_name: redis
     restart: unless-stopped
     <<: *ulimits
@@ -84,7 +84,7 @@ services:
     network_mode: bridge
 
   nacos:
-    image: nacos/nacos-server:v2.3.2
+    image: nacos/nacos-server:v3.3.0
     container_name: nacos
     restart: unless-stopped
     <<: *ulimits
@@ -128,7 +128,7 @@ services:
     network_mode: bridge
 
   rabbitmq:
-    image: rabbitmq:3.12-management
+    image: rabbitmq:4.4.0-management
     container_name: rabbitmq
     # Beam 的节点名由 hostname 推导(rabbit@<hostname>)。钉死它，重建后节点名才稳定。
     hostname: rabbitmq
