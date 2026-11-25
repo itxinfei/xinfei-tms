@@ -15,7 +15,7 @@
 
     <properties>
         <!-- 2026-10-10 调度改造：Quartz 自研调度面下线，统一接入 XXL-Job（版本与服务器 xxl-job-admin 2.4.1 对齐） -->
-        <xxl-job.version>2.4.1</xxl-job.version>
+        <xxl-job.version>3.5.0</xxl-job.version>
     </properties>
 
     <dependencies>
@@ -170,6 +170,9 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <classifier>exec</classifier>
+                </configuration>
             </plugin>
         </plugins>
     </build>
