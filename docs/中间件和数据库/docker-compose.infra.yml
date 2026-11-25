@@ -128,7 +128,7 @@ services:
     network_mode: bridge
 
   rabbitmq:
-    image: rabbitmq:4.4.0-management
+    image: rabbitmq:4.4.1-management
     container_name: rabbitmq
     # Beam 的节点名由 hostname 推导(rabbit@<hostname>)。钉死它，重建后节点名才稳定。
     hostname: rabbitmq
