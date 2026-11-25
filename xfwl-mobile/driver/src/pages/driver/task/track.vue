@@ -109,7 +109,7 @@ async function onReplay() {
     polylines.value = [
       {
         points: pts,
-        color: '#E15536',
+        color: '#FF0033',
         width: 6,
         dottedLine: false,
       },

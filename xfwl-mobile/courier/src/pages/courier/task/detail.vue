@@ -69,18 +69,19 @@
   </view>
 
   <!-- 操作按钮（按状态显示：未完成时可操作） -->
-  <view class="action-bar" v-if="canOperate">
+  <ActionBar v-if="canOperate">
     <u-button type="primary" text="去签收" shape="circle" @click="goSign"></u-button>
     <u-button type="success" text="入库" shape="circle" @click="goWarehousing"></u-button>
     <u-button type="warning" text="交接" shape="circle" @click="goHandover"></u-button>
     <u-button type="info" text="核验" shape="circle" @click="goVerify"></u-button>
     <u-button type="error" text="异常上报" shape="circle" @click="goException"></u-button>
-  </view>
+  </ActionBar>
 </template>
 
 <script setup lang="ts">
 // 任务详情：接 id，调 taskDetail + taskRoute，展示收寄件人 / 货物 / 路由，按状态显示操作按钮
 import { ref, computed } from 'vue'
+import ActionBar from '@/components/ActionBar.vue'
 import { taskDetail, taskRoute } from '@/common/api/courier'
 import { taskStatusView, taskTypeView } from '@/common/constants'
 import { maskName, maskPhone } from '@/common/utils/desensitive'
@@ -126,6 +127,7 @@ async function loadDetail() {
     detail.value = d || null
     routeList.value = normalizeRoute(r)
   } catch (e) {
+    uni.showToast({ title: "任务详情加载失败，请重试", icon: "none" })
     detail.value = null
   }
 }
@@ -199,7 +201,7 @@ onLoad((options: any) => {
 })
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .head-card {
   display: flex;
   justify-content: space-between;
@@ -236,7 +238,7 @@ onLoad((options: any) => {
   margin-top: var(--s-1);
 }
 .addr-key {
-  width: 140rpx;
+  width: var(--sz-140);
   color: var(--c-text-3);
 }
 .addr-val {
@@ -281,11 +283,11 @@ onLoad((options: any) => {
   align-items: flex-start;
 }
 .tl-dot {
-  width: 12rpx;
-  height: 12rpx;
+  width: var(--s-3);
+  height: var(--s-3);
   border-radius: 50%;
   background: var(--c-primary);
-  margin: 8rpx var(--s-3) 0 0;
+  margin: var(--s-2) var(--s-3) 0 0;
   flex-shrink: 0;
 }
 .route-agency {

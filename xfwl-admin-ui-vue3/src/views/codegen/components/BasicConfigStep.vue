@@ -42,7 +42,7 @@
         <el-row :gutter="24">
           <el-col :span="12">
             <el-form-item label="主包名" prop="packageName">
-              <el-input v-model="formData.packageName" placeholder="com.youlai.boot">
+              <el-input v-model="formData.packageName" placeholder="com.xinfei.monolith">
                 <template #prefix>
                   <el-icon><Folder /></el-icon>
                 </template>
@@ -88,7 +88,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="作者">
-              <el-input v-model="formData.author" placeholder="youlai">
+              <el-input v-model="formData.author" placeholder="xinfei">
                 <template #prefix>
                   <el-icon><User /></el-icon>
                 </template>

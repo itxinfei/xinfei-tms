@@ -1,42 +1,36 @@
 <template>
   <view class="page">
-    <u-navbar :title="'我的运单'" :back="true" :borderBottom="false" bgColor="#FFFFFF" title-color="#000000" left-icon-color="var(--c-text-1)" placeholder />
+    <u-navbar :title="'我的运单'" :back="false" :borderBottom="false" bgColor="var(--c-surface)" title-color="var(--c-text-1)" left-icon-color="var(--c-text-1)" placeholder />
 
     <!-- 筛选 -->
     <view class="filter-bar">
-      <u-search v-model="keyword" placeholder="搜索订单号" :showAction="false" bgColor="#FFFFFF" @change="onSearch" @clear="reload" />
-      <view class="mail-type-tabs">
-        <view
-          v-for="t in mailTypes"
-          :key="t.value"
-          class="mail-type-tab"
-          :class="{ active: mailType === t.value }"
-          @click="switchType(t.value)"
-        >{{ t.label }}</view>
-      </view>
-      <view class="mail-type-tabs">
-        <view
-          v-for="t in statusTabs"
-          :key="t.key"
-          class="mail-type-tab"
-          :class="{ active: statusKey === t.key }"
-          @click="switchStatus(t.key)"
-        >{{ t.label }}</view>
-      </view>
+      <u-search v-model="keyword" placeholder="搜索订单号" :showAction="false" bgColor="var(--c-surface)" @change="onSearchDebounced" @clear="reload" />
+      <!-- P1-1：两行筛选语义拆分。方向用分段控件（实心选中），状态用 chips（描边选中），灰度可辨 -->
+      <u-subsection
+        class="type-segment"
+        :list="mailTypes.map((t) => t.label)"
+        :current="mailType"
+        activeColor="var(--c-primary)"
+        inactiveColor="var(--c-text-2)"
+        bgColor="var(--c-fill-1)"
+        @change="onTypeChange"
+      />
+      <AppTabBar
+        label="运单状态"
+        :items="statusTabItems"
+        :current="statusKey"
+        @change="switchStatus"
+      />
     </view>
 
-    <!-- 列表 -->
-    <u-skeleton v-if="loading && list.length === 0" class="sk" :rows="4" title animated />
-    <view v-else-if="error" class="state-wrap">
-      <u-empty mode="network" text="加载失败，请检查网络后重试" />
-      <view class="retry-wrap">
-        <u-button type="primary" size="small" shape="circle" text="重试" @click="reload" />
-      </view>
-    </view>
-    <view v-else-if="list.length === 0" class="state-wrap">
-      <u-empty mode="list" text="暂无运单" />
-    </view>
-    <view v-else class="order-list">
+    <!-- 列表：三态统一由 StatusBlock 提供，失败带可诊断文案与重试 -->
+    <StatusBlock
+      :state="listState"
+      :message="errorMsg"
+      empty-text="暂无运单，去首页寄第一单吧"
+      @retry="reload"
+    >
+      <view class="order-list">
       <view v-for="item in list" :key="item.id" class="card order-card" hover-class="card-hover" @click="goDetail(item.id)">
         <view class="order-head">
           <view class="order-no">单号 {{ item.id }}</view>
@@ -62,22 +56,22 @@
         </view>
       </view>
       <u-loadmore :status="loadStatus" />
-    </view>
+      </view>
+    </StatusBlock>
 
-    <u-tabbar :value="1" :fixed="true" :placeholder="true" :safeAreaInsetBottom="true" activeColor="var(--c-primary)" inactiveColor="#86909C">
-      <u-tabbar-item text="首页" icon="home" @click="goHome" />
-      <u-tabbar-item text="我的运单" icon="list" @click="goList" />
-      <u-tabbar-item text="我的" icon="account" @click="goProfile" />
-    </u-tabbar>
+    <!-- 底部导航由 pages.json 原生 tabBar 提供，不再叠加页内 u-tabbar -->
   </view>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { onShow, onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app';
 import { page, statusFilters } from '../../../common/api/mailing.js';
 import { statusInfo, payMethodLabel, fmtTime } from '../../../common/utils/order.js';
 import { useUserStore } from '../../../stores/user.js';
+import { debounce, createInFlight, requestSafe, RequestState, pageParams, pagePayload } from '../../../common/request/safe.js';
+import StatusBlock from '../../../components/StatusBlock.vue';
+import AppTabBar from '../../../components/AppTabBar.vue';
 
 const userStore = useUserStore();
 const keyword = ref('');
@@ -89,14 +83,26 @@ const mailTypes = [
 const list = ref([]);
 const loading = ref(false);
 const error = ref(false);
+const errorMsg = ref('');
 const pageNum = ref(1);
 const pageSize = 10;
 const total = ref(0);
 const loadStatus = ref('loadmore');
+const inFlight = createInFlight(); // P1-3：onShow 与下拉刷新并发时复用同一个 Promise
+
+const listState = computed(() =>
+  loading.value && list.value.length === 0 ? 'loading'
+    : error.value ? 'fail'
+      : list.value.length === 0 ? 'empty' : 'success'
+);
 
 // 状态筛选档位（后端 status-filters 下发，禁前端硬编码；失败保底"全部"）
 const statusTabs = ref([{ key: 'all', label: '全部', statusList: null }]);
 const statusKey = ref('all');
+const statusTabItems = computed(() =>
+  statusTabs.value.map((t) => ({ key: t.key, text: t.label }))
+);
+const onTypeChange = (index) => switchType(mailTypes[index].value);
 let statusTabsLoaded = false;
 const loadStatusTabs = async () => {
   if (statusTabsLoaded) return;
@@ -107,6 +113,7 @@ const loadStatusTabs = async () => {
       statusTabs.value = data;
     }
   } catch (e) {
+    uni.showToast({ title: "筛选条件加载失败，已显示全部", icon: "none" })
     /* 保底全部档 */
   }
 };
@@ -117,35 +124,37 @@ const switchStatus = (key) => {
 };
 
 const loadList = async (reset = false) => {
-  if (loading.value) return;
   if (reset) {
     pageNum.value = 1;
     list.value = [];
   }
   loading.value = true;
   error.value = false;
-  try {
-    const params = {
-      keyword: keyword.value,
-      page: pageNum.value,
-      pagesize: pageSize,
-      mailType: mailType.value,
-    };
-    const curStatus = statusTabs.value.find((t) => t.key === statusKey.value);
-    if (curStatus && Array.isArray(curStatus.statusList) && curStatus.statusList.length) {
-      params.statusList = curStatus.statusList.join(',');
-    }
-    const data = await page(params);
-    const items = (data && data.items) || [];
-    total.value = (data && data.counts) || 0;
-    list.value = reset ? items : list.value.concat(items);
-    loadStatus.value = list.value.length >= total.value ? 'nomore' : 'loadmore';
-  } catch (e) {
+  errorMsg.value = '';
+  const params = {
+    keyword: keyword.value,
+    ...pageParams(pageNum.value, pageSize, 'lower'),
+    mailType: mailType.value,
+  };
+  const curStatus = statusTabs.value.find((t) => t.key === statusKey.value);
+  if (curStatus && Array.isArray(curStatus.statusList) && curStatus.statusList.length) {
+    params.statusList = curStatus.statusList.join(',');
+  }
+  // 三值返回 + in-flight 去重：失败不再被吞成空数组，也不重复发请求
+  const result = await inFlight('waybill-list', () =>
+    requestSafe(page(params), { fallback: '运单加载失败，请检查网络后重试' })
+  );
+  if (result.state === RequestState.FAIL) {
     loadStatus.value = 'loadmore';
     if (list.value.length === 0) error.value = true;
-  } finally {
-    loading.value = false;
+    errorMsg.value = result.message;
+  } else {
+    const { items, counts } = pagePayload(result.data);
+    total.value = counts;
+    list.value = reset ? items : list.value.concat(items);
+    loadStatus.value = list.value.length >= total.value ? 'nomore' : 'loadmore';
   }
+  loading.value = false;
 };
 
 const reload = () => {
@@ -157,10 +166,10 @@ const switchType = (v) => {
   reload();
 };
 const onSearch = () => reload();
+
+const onSearchDebounced = debounce(onSearch, 300);
 const goDetail = (id) => uni.navigateTo({ url: `/pages/customer/mailing/detail?id=${id}` });
-const goHome = () => uni.reLaunch({ url: '/pages/customer/home/index' });
-const goList = () => uni.reLaunch({ url: '/pages/customer/mailing/list' });
-const goProfile = () => uni.reLaunch({ url: '/pages/customer/profile/index' });
+// 标签切换统一由原生 tabBar 处理，页面内不再 reLaunch 清栈（切走再切回保留筛选与滚动位置）
 
 onPullDownRefresh(async () => {
   await loadList(true);
@@ -178,6 +187,12 @@ onShow(() => {
     uni.reLaunch({ url: '/pages/customer/login/index' });
     return;
   }
+  // 首页「查询运单」经 switchTab 进入（switchTab 不支持 query），用一次性本地存储接关键词
+  const pending = uni.getStorageSync('home_search_keyword');
+  if (pending) {
+    keyword.value = pending;
+    uni.removeStorageSync('home_search_keyword');
+  }
   loadStatusTabs();
   loadList(true);
 });
@@ -185,43 +200,20 @@ onShow(() => {
 
 <style lang="scss" scoped>
 .filter-bar {
-  padding: 16rpx 24rpx 0;
+  padding: var(--s-4) var(--s-6) 0;
 }
-.mail-type-tabs {
-  display: flex;
-  margin-top: 16rpx;
-}
-.mail-type-tab {
-  padding: 8rpx 32rpx;
-  margin-right: 16rpx;
-  border-radius: var(--r-round);
-  background: var(--c-surface);
-  color: var(--c-text-2);
-  font-size: var(--f-aux);
-}
-.mail-type-tab.active {
-  background: var(--c-primary);
-  color: #fff;
-}
-.state-wrap {
-  padding-top: 120rpx;
-}
-.retry-wrap {
-  display: flex;
-  justify-content: center;
-  padding: 32rpx 0;
-}
-.sk {
-  padding: 16rpx 24rpx;
+/* 分段控件独占一行；状态 chips 由 AppTabBar 自带样式，两者形态与灰度明确区分 */
+.type-segment {
+  margin-top: var(--s-4);
 }
 .card-hover {
-  background-color: rgba(255, 0, 51, 0.04);
+  background-color: var(--c-primary-light);
 }
 .order-list {
-  padding: 16rpx 24rpx;
+  padding: var(--s-4) var(--s-6);
 }
 .order-card {
-  padding: 24rpx;
+  padding: var(--s-6);
 }
 .order-head {
   display: flex;
@@ -234,18 +226,18 @@ onShow(() => {
   font-weight: 600;
 }
 .order-route {
-  margin-top: 16rpx;
+  margin-top: var(--s-4);
 }
 .route-item {
   display: flex;
   align-items: flex-start;
-  margin-bottom: 8rpx;
+  margin-bottom: var(--s-2);
 }
 .route-dot {
-  width: 12rpx;
-  height: 12rpx;
+  width: var(--s-3);
+  height: var(--s-3);
   border-radius: 50%;
-  margin: 10rpx 12rpx 0 0;
+  margin: var(--s-2) var(--s-3) 0 0;
   flex-shrink: 0;
 }
 .route-dot.send { background: var(--c-success); }
@@ -256,8 +248,8 @@ onShow(() => {
   line-height: 1.5;
 }
 .order-foot {
-  margin-top: 16rpx;
-  padding-top: 16rpx;
+  margin-top: var(--s-4);
+  padding-top: var(--s-4);
   border-top: 1rpx solid var(--c-border);
   display: flex;
   justify-content: space-between;
@@ -271,11 +263,11 @@ onShow(() => {
   font-size: var(--f-sub);
   color: var(--c-error);
   font-weight: 600;
-  margin-right: 12rpx;
+  margin-right: var(--s-3);
 }
-.pay { margin-right: 12rpx; }
+.pay { margin-right: var(--s-3); }
 .foot-route {
-  max-width: 320rpx;
+  max-width: var(--sz-320);
   font-size: var(--f-tip);
   color: var(--c-primary);
   text-align: right;

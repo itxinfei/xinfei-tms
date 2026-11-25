@@ -5,7 +5,7 @@ import com.xinfei.common.base.BaseStatusEnum;
 /**
  * 取派件任务分配状态
  *
- * @author itcast
+ * @author xinfei
  */
 
 public enum PickupDispatchTaskAssignedStatus implements BaseStatusEnum<Integer, String> {

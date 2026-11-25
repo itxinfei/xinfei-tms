@@ -23,14 +23,12 @@
 
     <!-- 任务列表 -->
     <view class="list-wrap">
-      <u-skeleton v-if="loading && list.length === 0" :rows="4" title animated />
-      <view v-else-if="error" class="state-wrap">
-        <u-empty mode="network" text="加载失败，请检查网络后重试"></u-empty>
-        <view class="retry-wrap">
-          <u-button type="primary" size="small" shape="circle" text="重试" @click="loadData()"></u-button>
-        </view>
-      </view>
-      <u-empty v-else-if="list.length === 0" mode="list" text="暂无任务"></u-empty>
+      <StatusBlock
+        :state="listState"
+        message="任务列表加载失败，请检查网络后重试"
+        empty-text="暂无任务"
+        @retry="loadData()"
+      >
       <view
         v-for="item in list"
         :key="item.id"
@@ -57,6 +55,7 @@
         </view>
       </view>
       <u-loadmore v-if="list.length > 0" :status="loadStatus"></u-loadmore>
+      </StatusBlock>
     </view>
 
     <!-- 底部操作条：扫一扫接单 / 批量操作占位（依赖后端批量契约，先 UI 壳） -->
@@ -69,7 +68,7 @@
         <u-button type="info" plain text="退出选择" shape="circle" class="bar-btn" @click="exitPick"></u-button>
         <u-button
           type="primary"
-          text="批量完成（已选 {{ picked.size }}）"
+          :text="'批量完成（已选 ' + picked.size + '）'"
           shape="circle"
           class="bar-btn"
           :disabled="picked.size === 0"
@@ -82,7 +81,8 @@
 
 <script setup lang="ts">
 // 取派任务列表：u-tabs 取件/派件双标签 + 分页 + 状态/类型 tag + 收寄件人脱敏
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import StatusBlock from '@/components/StatusBlock.vue'
 import { pickupDispatchPage } from '@/common/api/courier'
 import { taskStatusView, taskTypeView } from '@/common/constants'
 import { maskName } from '@/common/utils/desensitive'
@@ -94,6 +94,11 @@ const list = ref<any[]>([])
 const loading = ref(false)
 const error = ref(false)
 const loadStatus = ref('loadmore')
+const listState = computed(() =>
+  loading.value && list.value.length === 0 ? 'loading'
+    : error.value ? 'fail'
+      : list.value.length === 0 ? 'empty' : 'success'
+)
 const page = ref(1)
 const pageSize = 10
 const total = ref(0)
@@ -218,13 +223,13 @@ onShow(() => loadData())
 onPullDownRefresh(() => loadData())
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .list-wrap {
   margin-top: var(--s-3);
   padding-bottom: calc(var(--s-8) * 2.5);
 }
 .state-wrap {
-  padding-top: 120rpx;
+  padding-top: var(--sz-120);
 }
 .retry-wrap {
   display: flex;
@@ -238,15 +243,15 @@ onPullDownRefresh(() => loadData())
   padding: var(--s-3) var(--s-4) 0;
 }
 .status-chip {
-  padding: 6rpx 20rpx;
-  border-radius: 999rpx;
+  padding: var(--s-1) var(--s-5);
+  border-radius: var(--r-round);
   background: var(--c-surface);
   color: var(--c-text-2);
   font-size: var(--f-tip);
 }
 .status-chip.active {
   background: var(--c-primary);
-  color: #fff;
+  color: var(--c-primary-on);
 }
 .task-card {
   padding: var(--s-4);
@@ -261,8 +266,8 @@ onPullDownRefresh(() => loadData())
   gap: var(--s-2);
 }
 .pick-dot {
-  width: 32rpx;
-  height: 32rpx;
+  width: var(--s-8);
+  height: var(--s-8);
   border-radius: 50%;
   border: 2rpx solid var(--c-border);
   box-sizing: border-box;

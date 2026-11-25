@@ -10,7 +10,7 @@
         text="确认入库"
         shape="circle"
         :loading="loading"
-        customStyle="margin-top: 24rpx;"
+        customStyle="margin-top: var(--s-6);"
         @click="onConfirm"
       ></u-button>
     </view>
@@ -27,7 +27,7 @@
         :text="batch.length ? '继续扫码入库' : '扫码入库'"
         shape="circle"
         :loading="scanning"
-        customStyle="margin-top: 24rpx;"
+        customStyle="margin-top: var(--s-6);"
         @click="onScan"
       ></u-button>
 
@@ -75,6 +75,7 @@ async function onConfirm() {
     uni.showToast({ title: '入库成功', icon: 'success' })
     setTimeout(() => uni.navigateBack(), 600)
   } catch (e) {
+    uni.showToast({ title: "入库失败，请重试", icon: "none" })
   } finally {
     loading.value = false
   }
@@ -108,6 +109,7 @@ async function submitOne(code: string) {
     pushBatch(code, true, '入库成功')
     uni.showToast({ title: '入库成功', icon: 'success' })
   } catch (e) {
+    uni.showToast({ title: "入库失败，请重试", icon: "none" })
     pushBatch(code, false, '入库失败')
   }
 }
@@ -118,7 +120,7 @@ function pushBatch(code: string, ok: boolean, msg: string) {
 }
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .title {
   display: block;
   font-size: var(--f-sub);
@@ -164,7 +166,7 @@ function pushBatch(code: string, ok: boolean, msg: string) {
 }
 .batch-no {
   flex: 1;
-  margin-left: 12rpx;
+  margin-left: var(--s-3);
   font-size: var(--f-aux);
   color: var(--c-text-1);
   word-break: break-all;

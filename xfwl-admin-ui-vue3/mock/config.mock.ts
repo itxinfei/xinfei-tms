@@ -6,7 +6,7 @@ const configList: Array<Record<string, any>> = [
     id: "1",
     configName: "系统名称",
     configKey: "system.name",
-    configValue: "vue3-element-admin",
+    configValue: "xfwl-admin-ui",
     remark: "后台管理系统名称",
   },
   {

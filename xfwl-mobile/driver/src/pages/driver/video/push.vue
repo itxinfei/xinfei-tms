@@ -10,7 +10,7 @@
         text="开始推流"
         shape="circle"
         :disabled="true"
-        customStyle="margin-top: 24rpx;"
+        customStyle="margin-top: var(--s-6);"
       ></u-button>
     </view>
   </view>
@@ -20,7 +20,7 @@
 // 视频推流占位页：后端服务尚未提供，仅占位，不实现前端 RTC 逻辑。
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .placeholder {
   display: flex;
   flex-direction: column;

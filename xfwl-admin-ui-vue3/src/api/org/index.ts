@@ -54,7 +54,7 @@ const OrgAPI = {
   getTree() {
     return request<unknown, OrgNode[]>({ url: `${ORG_BASE_URL}/tree`, method: "get" });
   },
-  /** 组织下拉选项树（替代 youlai 的 /api/v1/depts/options） */
+  /** 组织下拉选项树（对应上游模板的 /api/v1/depts/options） */
   async getOptions(): Promise<OptionItem[]> {
     const tree = await this.getTree();
     return orgTreeToOptions(tree);

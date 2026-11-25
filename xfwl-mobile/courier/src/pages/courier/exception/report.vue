@@ -33,7 +33,7 @@
       <view class="photo-list">
         <view class="photo-item" v-for="(p, idx) in photos" :key="idx">
           <image :src="p.url" class="photo-img" mode="aspectFill"></image>
-          <u-icon name="close-circle" class="photo-del" @click="removePhoto(idx)"></u-icon>
+          <u-icon name="close-circle" class="photo-del" aria-label="删除照片" @click="removePhoto(idx)"></u-icon>
         </view>
         <view class="photo-add" @click="onChoosePhoto">
           <u-icon name="camera" size="44" color="var(--c-text-3)"></u-icon>
@@ -42,13 +42,17 @@
       </view>
     </view>
 
-    <!-- 备注：必填 -->
-    <view class="card">
-      <text class="label">异常说明</text>
-      <u--textarea v-model="remark" placeholder="请描述异常情况（必填）" :maxlength="200"></u--textarea>
-    </view>
+    <!-- 备注：必填，字段级校验由 u-form + FormField 承接 -->
+    <u-form ref="formRef" :model="formModel" :rules="formRules" errorType="none">
+      <FormField prop="remark" :borderBottom="false">
+        <view class="card" id="field-remark">
+          <text class="label">异常说明</text>
+          <u--textarea v-model="remark" placeholder="请描述异常情况（必填）" :maxlength="200"></u--textarea>
+        </view>
+      </FormField>
+    </u-form>
 
-    <view class="action-bar">
+    <ActionBar>
       <u-button
         type="primary"
         text="提交上报"
@@ -56,7 +60,7 @@
         :loading="loading"
         @click="onSubmit"
       ></u-button>
-    </view>
+    </ActionBar>
   </view>
 </template>
 
@@ -64,8 +68,11 @@
 // 异常上报：接 tranOrderId/orderNumber/transportTaskId（容错）；
 // 异常类型用 COURIER_EXCEPTION_TYPES 三选一；附件至少 1 张；remark 必填；reporterId 由 token 取，前端不传
 import { ref, computed } from 'vue'
+import ActionBar from '@/components/ActionBar.vue'
 import { attachmentUpload, exceptionReport, COURIER_EXCEPTION_TYPES } from '@/common/api/courier'
 import { onLoad } from '@dcloudio/uni-app'
+import FormField from '@/components/FormField.vue'
+import { firstValidateError, focusField } from '@/common/ui-form.js'
 
 const tranOrderId = ref('')
 const orderNumber = ref('')
@@ -74,6 +81,10 @@ const exceptionTypes = COURIER_EXCEPTION_TYPES
 const exceptionType = ref('')
 const photos = ref<any[]>([]) // {url, id}
 const remark = ref('')
+const formRef = ref<any>(null)
+// computed 包装：保留原有 remark ref 的全部调用点，同时给 u-form 提供实时 model
+const formModel = computed(() => ({ remark: remark.value }))
+const formRules = { remark: [{ required: true, message: '请填写异常说明', trigger: 'blur' }] }
 const loading = ref(false)
 
 // 自动定位：wgs84（与后端存库口径一致），失败不阻塞上报
@@ -116,6 +127,7 @@ function onChoosePhoto() {
           const att = await attachmentUpload(filePath)
           photos.value.push({ url: filePath, id: att?.id })
         } catch (e) {
+          uni.showToast({ title: "照片上传失败，可重新拍照", icon: "none" })
           // 单张失败不影响其余
         }
       }
@@ -136,8 +148,12 @@ async function onSubmit() {
     uni.showToast({ title: '请至少上传 1 张照片', icon: 'none' })
     return
   }
-  if (!remark.value.trim()) {
-    uni.showToast({ title: '请填写异常说明', icon: 'none' })
+  try {
+    await formRef.value?.validate()
+  } catch (err: any) {
+    const first = firstValidateError(err)
+    uni.showToast({ title: first.message, icon: 'none' })
+    focusField(first.field)
     return
   }
   if (loading.value) return
@@ -155,20 +171,21 @@ async function onSubmit() {
     uni.showToast({ title: '上报成功', icon: 'success' })
     setTimeout(() => uni.navigateBack(), 600)
   } catch (e) {
+    uni.showToast({ title: "异常上报失败，请重试", icon: "none" })
   } finally {
     loading.value = false
   }
 }
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .loc-card {
   padding: var(--s-3) var(--s-4);
 }
 .loc-row {
   display: flex;
   align-items: center;
-  gap: 8rpx;
+  gap: var(--s-2);
 }
 .loc-text {
   flex: 1;
@@ -198,24 +215,24 @@ async function onSubmit() {
 }
 .photo-item {
   position: relative;
-  width: 160rpx;
-  height: 160rpx;
+  width: var(--sz-160);
+  height: var(--sz-160);
 }
 .photo-img {
-  width: 160rpx;
-  height: 160rpx;
+  width: var(--sz-160);
+  height: var(--sz-160);
   border-radius: var(--r-sm);
 }
 .photo-del {
   position: absolute;
-  top: -10rpx;
-  right: -10rpx;
+  top: calc(var(--s-2) * -1);
+  right: calc(var(--s-2) * -1);
   background: var(--c-surface);
   border-radius: var(--r-round);
 }
 .photo-add {
-  width: 160rpx;
-  height: 160rpx;
+  width: var(--sz-160);
+  height: var(--sz-160);
   border: 2rpx dashed var(--c-border);
   border-radius: var(--r-sm);
   display: flex;

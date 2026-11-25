@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>移动三端页面整改 · 施工档案</title>
+<style>
+:root{
+  --paper:#F7F5F1; --paper:oklch(97.2% .006 55);
+  --surface:#FCFAF6; --surface:oklch(98.8% .004 55);
+  --ink:#27231F; --ink:oklch(24% .012 55);
+  --ink2:#5A544C; --ink2:oklch(46% .012 55);
+  --ink3:#6E675F; --ink3:oklch(53% .010 55);
+  --line:#E2DDD4; --line:oklch(90% .008 55);
+  --line-strong:#CFC8BC; --line-strong:oklch(84% .010 55);
+  --red:#CC0029; --red:oklch(52% .20 22);
+  --red-bright:#FF0033; --red-bright:oklch(58% .24 25);
+  --green:#1E6B3A; --green:oklch(48% .11 150);
+  --font-display:"Noto Serif SC","Source Han Serif SC","Songti SC","STSong","SimSun",Georgia,serif;
+  --font-body:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",system-ui,sans-serif;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px; --s8:64px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.sheet{max-width:1320px;margin:0 auto;padding:0 var(--s6) var(--s8)}
+a{color:inherit}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+
+.masthead{border-bottom:1px solid var(--line-strong);padding:var(--s6) 0 var(--s5)}
+.meta-row{display:flex;flex-wrap:wrap;gap:var(--s5);align-items:baseline;font-size:12px;letter-spacing:.14em;color:var(--ink3);text-transform:uppercase}
+.meta-row .stamp{color:var(--red);font-weight:600;letter-spacing:.1em}
+.masthead h1{font-family:var(--font-display);font-size:clamp(34px,5vw,62px);font-weight:600;line-height:1.12;letter-spacing:-.02em;margin:var(--s5) 0 var(--s3);max-width:20ch}
+.masthead h1 em{font-style:normal;color:var(--red)}
+.lede{font-size:16px;color:var(--ink2);max-width:64ch;margin:0}
+.lede strong{color:var(--ink);font-weight:600}
+
+.layout{display:grid;grid-template-columns:290px minmax(0,1fr);gap:var(--s8);padding-top:var(--s7)}
+.dossier{position:sticky;top:var(--s5);align-self:start;border-left:2px solid var(--red);padding-left:var(--s5)}
+.dossier h2{font-family:var(--font-display);font-size:15px;font-weight:600;letter-spacing:.08em;margin:0 0 var(--s4)}
+.dossier h2:not(:first-child){margin-top:var(--s7)}
+.progress-num{font-family:var(--font-display);font-size:52px;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+.progress-num small{font-size:18px;color:var(--ink3);letter-spacing:0}
+.progress-track{height:3px;background:var(--line);margin:var(--s4) 0 var(--s3);position:relative}
+.progress-fill{height:100%;width:0;background:var(--red);transition:width .7s cubic-bezier(.16,1,.3,1)}
+.progress-note{font-size:12px;color:var(--ink3);margin:0}
+
+.baseline{list-style:none;padding:0;margin:0;border-top:1px solid var(--line)}
+.baseline li{display:grid;grid-template-columns:1fr auto;gap:var(--s1) var(--s3);align-items:baseline;padding:var(--s3) 0;border-bottom:1px solid var(--line)}
+.baseline .k{font-size:12px;color:var(--ink2);line-height:1.4}
+.baseline .v{font-family:var(--font-display);font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.baseline .v .to{color:var(--red)}
+.baseline .v .arrow{color:var(--ink3);font-size:12px;padding:0 3px}
+
+.rules{list-style:none;padding:0;margin:0;font-size:12px;color:var(--ink2)}
+.rules li{padding:var(--s2) 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:18px 1fr;gap:var(--s2)}
+.rules li span{font-family:var(--font-display);color:var(--red)}
+
+main{min-width:0;container-type:inline-size}
+.toolbar{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;border-bottom:1px solid var(--line-strong);padding-bottom:var(--s4);margin-bottom:var(--s6)}
+.toolbar .label{font-size:12px;letter-spacing:.12em;color:var(--ink3);margin-right:var(--s3)}
+.filter{font-size:13px;padding:var(--s2) var(--s3);color:var(--ink2);border-bottom:1px solid transparent;transition:color .2s,border-color .2s}
+.filter:hover{color:var(--ink)}
+.filter[aria-pressed="true"]{color:var(--red);border-bottom-color:var(--red);font-weight:600}
+.toolbar .spacer{flex:1}
+.fold-all{font-size:12px;color:var(--ink3);border-bottom:1px solid var(--line-strong);padding-bottom:2px}
+.fold-all:hover{color:var(--red);border-bottom-color:var(--red)}
+
+.batch{margin-bottom:var(--s8)}
+.batch-head{display:flex;align-items:baseline;gap:var(--s4);width:100%;text-align:left;padding-bottom:var(--s3);border-bottom:1px solid var(--line-strong)}
+.batch-num{font-family:var(--font-display);font-size:40px;line-height:1;color:var(--line-strong);font-variant-numeric:tabular-nums;letter-spacing:-.03em;transition:color .3s}
+.batch:hover .batch-num{color:var(--red)}
+.batch-title{font-family:var(--font-display);font-size:24px;font-weight:600;letter-spacing:-.01em}
+.batch-sub{font-size:12px;color:var(--ink3);margin-left:auto;text-align:right}
+.batch-count{font-size:12px;font-variant-numeric:tabular-nums;color:var(--red);white-space:nowrap}
+.batch-head .chev{font-size:12px;color:var(--ink3);margin-left:var(--s2)}
+
+.tasks{list-style:none;padding:0;margin:0}
+.task{display:grid;grid-template-columns:44px 1fr;gap:var(--s3);padding:var(--s4) 0;border-bottom:1px solid var(--line);transition:opacity .35s cubic-bezier(.16,1,.3,1)}
+.task[hidden]{display:none}
+.task.done{opacity:.46}
+.task.done .task-title{text-decoration:line-through;text-decoration-color:var(--red);text-decoration-thickness:1px}
+.check{position:relative;display:block;width:44px;height:44px;cursor:pointer}
+.check input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer;z-index:1}
+.box{position:absolute;top:12px;left:12px;width:20px;height:20px;border:1px solid var(--line-strong);background:var(--surface);transition:background .2s,border-color .2s,transform .25s cubic-bezier(.16,1,.3,1)}
+.check input:focus-visible + .box{outline:2px solid var(--red);outline-offset:3px}
+.check:hover .box{border-color:var(--red)}
+.check input:checked + .box{background:var(--red);border-color:var(--red);transform:scale(1.06)}
+.check input:checked + .box::after{content:"";position:absolute;left:6px;top:2px;width:5px;height:10px;border:solid var(--surface);border-width:0 2px 2px 0;transform:rotate(42deg)}
+.task-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--s3)}
+.task-id{font-family:var(--font-display);font-size:13px;font-variant-numeric:tabular-nums;color:var(--red);min-width:34px}
+.task.done .task-id{color:var(--ink3)}
+.task-title{font-size:16px;font-weight:600;letter-spacing:-.01em;margin:0}
+.state{font-size:11px;color:var(--ink3);border:1px solid var(--line);padding:1px 7px;letter-spacing:.04em}
+.task.done .state{color:var(--green);border-color:var(--green)}
+.task-meta{margin:var(--s2) 0 0;display:grid;gap:var(--s1);font-size:13px;color:var(--ink2)}
+.task-meta .row{display:grid;grid-template-columns:52px 1fr;gap:var(--s3)}
+.task-meta .tag{font-size:11px;color:var(--ink3);letter-spacing:.08em;padding-top:2px}
+.task-meta code{font-family:var(--font-body);font-size:12px;background:var(--surface);border:1px solid var(--line);padding:1px 5px;color:var(--ink2)}
+@container (min-width:720px){.task-meta{grid-template-columns:1fr 1fr;gap:var(--s4)}}
+
+.empty{border:1px dashed var(--line-strong);padding:var(--s7) var(--s5);text-align:center;margin-bottom:var(--s8)}
+.empty[hidden]{display:none}
+.empty h3{font-family:var(--font-display);font-size:20px;margin:0 0 var(--s2)}
+.empty p{color:var(--ink2);font-size:13px;margin:0 0 var(--s4)}
+.empty button{border-bottom:1px solid var(--red);color:var(--red);padding-bottom:2px;font-size:13px}
+
+.commands{margin-top:var(--s8);border-top:1px solid var(--line-strong);padding-top:var(--s6)}
+.commands h2{font-family:var(--font-display);font-size:20px;margin:0 0 var(--s3)}
+.cmd-wrap{position:relative;background:var(--surface);border:1px solid var(--line);padding:var(--s5)}
+.cmd-wrap pre{margin:0;font-family:ui-monospace,"SFMono-Regular",Consolas,monospace;font-size:12.5px;line-height:2;color:var(--ink2);overflow-x:auto;white-space:pre}
+.copy{position:absolute;top:var(--s3);right:var(--s3);font-size:12px;color:var(--ink3);border:1px solid var(--line-strong);padding:var(--s1) var(--s3);background:var(--surface)}
+.copy:hover{color:var(--red);border-color:var(--red)}
+.dod{margin-top:var(--s5);font-size:13px;color:var(--ink2);max-width:80ch}
+.dod strong{color:var(--ink)}
+
+footer{margin-top:var(--s8);border-top:1px solid var(--line-strong);padding-top:var(--s5);display:flex;flex-wrap:wrap;gap:var(--s5);font-size:12px;color:var(--ink3)}
+footer .mark{font-family:var(--font-display);font-size:16px;color:var(--red)}
+
+@media (max-width:900px){
+  .sheet{padding:0 var(--s4) var(--s7)}
+  .layout{grid-template-columns:1fr;gap:var(--s7);padding-top:var(--s6)}
+  .dossier{position:static;border-left:0;border-top:2px solid var(--red);padding-left:0;padding-top:var(--s4)}
+  .batch-sub{display:none}
+  .task-meta{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <header class="masthead">
+    <div class="meta-row">
+      <span class="stamp">施工档案 / 01</span>
+      <span>心飞物流 TMS · 移动三端</span>
+      <span>2026-11-08</span>
+      <span>37 页 / 7717 行</span>
+    </div>
+    <h1>把<em>规范</em>变成<br>不需要自觉的系统</h1>
+    <p class="lede">三端不缺页面，缺的是<strong>组件层</strong>与<strong>校验层</strong>。上一轮把 40 处旧橙红清零后观感未变——修的是色相，没修层级与「动作 → 确证」闭环。本档案按「卡口先行 → 真源与配方 → 页面接线」三批推进，全程不新增页面。</p>
+  </header>
+
+  <div class="layout">
+    <aside class="dossier">
+      <h2>整改进度</h2>
+      <div class="progress-num"><span id="doneCount">0</span><small> / <span id="totalCount">30</span></small></div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <p class="progress-note" id="progressNote" aria-live="polite">勾选状态保存在此浏览器</p>
+
+      <h2>基线 → 本轮 → 目标</h2>
+      <ul class="baseline">
+        <li><span class="k">全仓 guard 违规</span><span class="v">519 <span class="arrow">→</span> <span class="to">3</span> <span class="arrow">→</span> 0</span></li>
+        <li><span class="k">硬编码色值 R5</span><span class="v">58 <span class="arrow">→</span> <span class="to">1</span> <span class="arrow">→</span> 0</span></li>
+        <li><span class="k">硬编码 rpx R7</span><span class="v">339 <span class="arrow">→</span> <span class="to">0</span> <span class="arrow">→</span> 0</span></li>
+        <li><span class="k">静默 catch R1</span><span class="v">49 <span class="arrow">→</span> <span class="to">1</span> <span class="arrow">→</span> 0</span></li>
+        <li><span class="k">reLaunch 切标签 R2</span><span class="v">13 <span class="arrow">→</span> <span class="to">0</span> <span class="arrow">→</span> 0</span></li>
+        <li><span class="k">底部固定层叠加 R4</span><span class="v">2 <span class="arrow">→</span> <span class="to">0</span> <span class="arrow">→</span> 0</span></li>
+        <li><span class="k">全局 !important R6</span><span class="v">3 <span class="arrow">→</span> <span class="to">0</span> <span class="arrow">→</span> 0</span></li>
+        <li><span class="k">手写占位 R8</span><span class="v">7 <span class="arrow">→</span> <span class="to">0</span> <span class="arrow">→</span> 0</span></li>
+        <li><span class="k">样式缺 scoped R12</span><span class="v">26 <span class="arrow">→</span> <span class="to">1</span> <span class="arrow">→</span> 0</span></li>
+        <li><span class="k">主题写死色 R13</span><span class="v">3 <span class="arrow">→</span> <span class="to">0</span> <span class="arrow">→</span> 0</span></li>
+        <li><span class="k">品牌亮色承载文字 R14</span><span class="v">0 <span class="arrow">→</span> <span class="to">0</span> <span class="arrow">→</span> 0</span></li>
+        <li><span class="k">品牌亮色背景白字 R17</span><span class="v">0 <span class="arrow">→</span> <span class="to">0</span> <span class="arrow">→</span> 0</span></li>
+        <li><span class="k">无 u-form 的表单页 R9</span><span class="v">8 <span class="arrow">→</span> <span class="to">0</span> <span class="arrow">→</span> 0</span></li>
+        <li><span class="k">令牌真源</span><span class="v">7 份 <span class="arrow">→</span> <span class="to">1 份</span></span></li>
+        <li><span class="k">公共组件（已接线）</span><span class="v">0 <span class="arrow">→</span> <span class="to">4 × 3 端</span></span></li>
+        <li><span class="k">自研无障碍属性</span><span class="v">0 <span class="arrow">→</span> <span class="to">20+</span> <span class="arrow">→</span> 全覆盖</span></li>
+      </ul>
+
+      <h2>硬约束</h2>
+      <ol class="rules">
+        <li><span>1</span><div>不新增任何页面</div></li>
+        <li><span>2</span><div>三批顺序不可反</div></li>
+        <li><span>3</span><div>批次三改业务源码，实施前单独授权</div></li>
+        <li><span>4</span><div>派单前查《99-任务认领台账》</div></li>
+        <li><span>5</span><div>每批跑验收并回填基线数字</div></li>
+        <li><span>6</span><div>本期不做暗色模式与复杂动效</div></li>
+      </ol>
+    </aside>
+
+    <main>
+      <div class="toolbar">
+        <span class="label">筛选</span>
+        <button class="filter" data-filter="all" aria-pressed="true">全部</button>
+        <button class="filter" data-filter="todo" aria-pressed="false">未完成</button>
+        <button class="filter" data-filter="b1" aria-pressed="false">批次一</button>
+        <button class="filter" data-filter="b2" aria-pressed="false">批次二</button>
+        <button class="filter" data-filter="b3" aria-pressed="false">批次三</button>
+        <button class="filter" data-filter="p1" aria-pressed="false">P1</button>
+        <button class="filter" data-filter="p2" aria-pressed="false">P2</button>
+        <span class="spacer"></span>
+        <button class="fold-all" id="foldAll">全部收起</button>
+      </div>
+
+      <div id="batches"></div>
+
+      <div class="empty" id="empty" hidden>
+        <h3>这个筛选下没有任务</h3>
+        <p id="emptyText">切换到「全部」查看完整 30 条。</p>
+        <button id="showAll">查看全部任务</button>
+      </div>
+
+      <section class="commands">
+        <h2>验收命令</h2>
+        <p class="dod"><strong>整轮收口实跑</strong>：自检 <code>PASS 29 项断言全绿</code>；<code>check:ui</code> 闸门 <code>3 / 3 PASS</code>；快照轨迹 <code>519 → 302 → 270 → 3</code>；三端 <code>build:h5</code> 均以严格退出码复验 <code>DONE Build complete.</code>（exit 0）。R2/R3/R4/R6/R7/R8/R9/R10/R11/R13/R14/R17 全部归零；剩余 3 条（R1 / R5 / R12）全部来自用户正在改的 <code>driver/task/track.vue</code>，按约定未动。<br><strong>本轮落地</strong>：4 个公共组件 × 三端并真实接线（StatusBlock 13 页 / ActionBar 13 页 / FormField 7 页 / AppTabBar 1 页）；<code>shared/request/safe.js</code> 三值返回 + 防抖 + in-flight 去重 + 分页归一化；259 处存量 rpx 由 <code>tokenize-rpx.mjs</code> 一次性收进唯一真源。<br><strong>规则自愈</strong>：补 R1 Promise 静默 catch、HTML 注释误报、R11 契约差异假阳性、R4 组件化漏算、行注释 <code>m</code> 标志五处口径，每条都配正/反例断言，自检 24 → 29 项（本子轮新增 R14 / R17 与对应 SCOPE 断言）。<br><strong>未完成</strong>：P1-6 全量（三态只铺 13/37 页）、P2-1~P2-4；小程序端真机视觉 / 读屏 / 断网 / 对比度脚本未实测。<code>--sz-*</code> 是存量尺寸兼容档，不等于间距体系已完全 4pt 标准化。<br><strong>入库边界</strong>：<code>.gitea/</code> 与 <code>docs/需求文档/</code> 被整目录忽略，workflow 与本页配套 TODO 不随代码推送；CI 门禁生效还需在 VM 侧同步 workflow 步骤，或让构建入口调用 <code>check:ui</code>。<br><strong>本续作 a11y 收口</strong>：全仓扫描 21 个含 <code>u-icon</code> 页面，排除已接 StatusBlock 的 13 页后，定位 4 页存在「可点击但无文字」的 <code>u-icon</code> 控件——<code>courier/exception/report</code>、<code>courier/pod/sign</code>、<code>driver/exception/report</code> 的「删除照片」图标与 <code>customer/address/list</code> 的「编辑 / 删除地址」图标，外加 <code>pod/sign</code> 的「预览照片」可点击图，共 5 处已加 <code>aria-label</code>；home / profile 三页与其余动作页按钮均带可见文字或已绑定 <code>role</code>/<code>aria-live</code>，无 icon-only 缺口。<code>check:ui</code> 复跑仍 29 项全绿 / 3/3 PASS。<br><strong>P1-6 续作</strong>：全仓 37 页逐页判定，异步列表/详情页 13 页已全部接 StatusBlock 四态（新增 courier/task/route 路由节点，地图不随节点态隐藏）；其余 24 页为表单/动作/首页/我的/登录页，各有显式反馈或 a11y，无需 StatusBlock 包裹，「三态铺满 37 页」原口径过宽，修正为「全部异步列表/详情页铺满」已达成；u-empty 全仓仅剩 3 处引用且均已处理。</p>
+        <div class="cmd-wrap">
+          <button class="copy" id="copyBtn">复制</button>
+          <pre id="cmdText">cd xfwl-mobile
+node scripts/guard-self-test.mjs
+node scripts/tokenize-rpx.mjs --dry
+pnpm run check:ui
+pnpm run guard
+pnpm run guard:baseline
+pnpm run build:courier
+pnpm run build:customer
+pnpm run build:driver
+bash /data/xinfei-deploy/deploy-fe.sh &lt;端&gt;</pre>
+        </div>
+        <p class="dod"><strong>整轮完成口径（尚未达成，勿提前盖章）</strong>：基线 12 项指标归零或达标；三条核心任务（寄件 9→5 步、取派签收 6→3 步、待提货送达 6→3 步）每步有可见反馈；<code>guard</code> 全仓 0 违规且故意注入能被拦下；三端构建全绿；全程 0 个新增页面。当前差距与已完成项以 <code>docs/需求文档/80-…TODO</code> 第二、五、六、七节为准。本轮交付的是「静态卡口 + 组件层 + 请求层基座 + 存量机械清理」收口，<strong>不是产品级验收通过</strong>。</p>
+      </section>
+
+      <footer>
+        <span class="mark">心飞速运</span>
+        <span>配套文档：docs/需求文档/80-移动三端页面设计优化整改TODO_20261108.md</span>
+        <span>依据：《13》《70》《76》《99》</span>
+      </footer>
+    </main>
+  </div>
+</div>
+
+<script>
+const BATCHES = [
+  {id:'b1',num:'01',title:'卡口先行',sub:'只新增文件 · 零业务源码改动',tasks:[
+    {id:'1.1',t:'静态校验脚本',f:'xfwl-mobile/scripts/guard-ui.mjs',a:'R1–R14、R17（共 15 条）已实跑：519 条基线违规 → 收口 3；补 R1-Promise / HTML 注释 / R11 / R4 组件口径'},
+    {id:'1.2',t:'正例 / 反例自检',f:'xfwl-mobile/scripts/guard-self-test.mjs',a:'29 项断言全绿；五处规则口径修正全部配正/反例，防止改规则让数字变好看'},
+    {id:'1.3',t:'脚本与 CI 接入',f:'xfwl-mobile/package.json / .gitea/workflows/build-check-fe.yml',a:'注入静默 catch → exit 1；修复 → exit 0；缺快照 → exit 1'},
+    {id:'1.4',t:'基线快照归档',f:'xfwl-mobile/scripts/guard-baseline.json',a:'519 → 302 → 270 → 3 已重生成；check:ui 显示 3/3 PASS'}
+  ]},
+  {id:'b2',num:'02',title:'真源与组件配方',sub:'改全局入口 · 2.4 / 2.5 已落地',tasks:[
+    {id:'2.1',t:'设计令牌单一真源',f:'shared/styles/tokens.scss + 三端薄壳',a:'已收敛为 1 份；R13 = 0，uni.scss 不再写死色值'},
+    {id:'2.2',t:'修值与补全标尺',f:'共享 tokens.scss',a:'已落地：白字 #CC0029 (5.83:1)、text-3 #626E7E、--s-1..13、--f-hero、22 档 --sz-* 尺寸兼容档、语义化 z-index'},
+    {id:'2.3',t:'删除全局 !important 补丁',f:'三端 App.vue .u-button--active',a:'已删；R6 = 0，且注释里的 !important 不再误报'},
+    {id:'2.4',t:'抽 4 个公共组件',f:'StatusBlock / ActionBar / FormField / AppTabBar',a:'已完成：×3 端共 12 个组件，真实接线 StatusBlock 13 页 / ActionBar 13 页 / FormField 7 页 / AppTabBar 1 页'},
+    {id:'2.5',t:'统一请求层基座',f:'shared/request/safe.js + 三端薄壳',a:'已完成：三值返回 / 防抖 / in-flight 去重 / 分页归一化 / 表单辅助 / canvas 常量；R10、R11 归零。三端 request 签名分裂未重构，留独立任务'},
+    {id:'2.6',t:'底部固定层唯一化',f:'三端 pages.json / 客户端原生 tabBar',a:'已完成：R4 = 0、R8 = 0、R2 = 0；3 处 140rpx 内联占位删除'},
+    {id:'2.7',t:'样式作用域统一',f:'courier + driver 共 25 个页面',a:'已完成：R12 26 → 1，唯一剩余是用户改动文件，按规则跳过'},
+    {id:'2.8',t:'三端构建回归',f:'三端 build:h5',a:'已完成：三端 DONE Build complete. (exit 0，严格退出码复验)；违规 519 → 3'}
+  ]},
+  {id:'b3',num:'03',title:'P0 六条 · 页面接线',sub:'改业务源码 · 3.1 仍进行中',tasks:[
+    {id:'3.1',t:'动作 → 确证闭环',f:'33 个静默 catch + 三端首页 / 登录页',a:'部分闭环：R1 49 → 1，另补 3 处 Promise 静默 catch；三值返回已在运单列表落地，全端 37 页三态只铺 13 页'},
+    {id:'3.2',t:'标签页清栈修复',f:'客户端 3 个标签页 + switchTab',a:'已完成：R2 = 0；客户端 reLaunch 15 → 5，查单关键词用一次性 Storage 传递'},
+    {id:'3.3',t:'首页唯一主操作',f:'客户端 home / profile / create',a:'已完成：R4 = 0；删红渐变 hero、5 卡、FAB，只留唯一寄件 CTA + 查单框'},
+    {id:'3.4',t:'下单防错与运费联动',f:'customer/mailing/create.vue',a:'已完成：u-form + 300ms 防抖 + 价格三态 + 幂等 + 地址内联弹层；该文件 guard 命中 0'},
+    {id:'3.5',t:'删除 / 修复无接线控件',f:'courier/home u-tabs、task/list.vue:72',a:'已完成：R3 = 0；灰按钮全部走「明确说明」，无无声灰按钮'},
+    {id:'3.6',t:'登录页',f:'三端 login/index.vue',a:'已完成：u-button + loading/disabled + 三类失败文案 + 幂等；隐私「暂不使用」真实拦截'},
+    {id:'3.7',t:'三端角色化首屏',f:'三端 home/index.vue',a:'已完成：卡片数 / 主按钮尺寸 / 信息条位置 3 项全不同；driver 加常驻定位状态条与 96rpx 单手主按钮'}
+  ]},
+  {id:'p1',num:'04',title:'复发阻断与一致性',sub:'P1 · 批次二之后',tasks:[
+    {id:'P1-1',t:'筛选语义拆分',f:'customer/mailing/list.vue 顶部三层',a:'已完成：u-subsection 管寄/收方向（实心选中），AppTabBar 管状态（描边 chips），两行形态与灰度可辨'},
+    {id:'P1-2',t:'搜索统一防抖',f:'R10 实测 6 处 @change 直连请求',a:'已完成：统一走 shared 300ms debounce，R10 = 0'},
+    {id:'P1-3',t:'单一刷新入口 + 去重',f:'5 处 onShow / 下拉双调 loadData',a:'已完成：运单列表用 createInFlight 去重并发刷新，并改三值返回；其余页面仍由 loading 守卫兜底'},
+    {id:'P1-4',t:'分页参数统一',f:'R11 实测 7 个文件命名分裂',a:'已完成：pageParams(page, size, style) 表达后端契约差异，R11 = 0；不强行改后端命名'},
+    {id:'P1-5',t:'司机上报状态可见',f:'driver/home/index.vue',a:'已完成（随 3.7）：常驻状态条 + 离线队列 N 条 + 立即上报先补传队列；计数失败显示 — 与重试'},
+    {id:'P1-6',t:'三态铺到 37 页',f:'全端页面',a:'进行中：StatusBlock 已接 13 页（客户 5 / 快递员 3 / 司机 5）；剩余 24 页经判定为表单/动作/首页/我的/登录页无需 StatusBlock，断网抽测未做'}
+  ]},
+  {id:'p2',num:'05',title:'无障碍 · 性能 · 帮助',sub:'P2',tasks:[
+    {id:'P2-1',t:'无障碍基线',f:'全端 aria / role / focus / 热区',a:'对比度 0 违规；键盘走通登录与下单'},
+    {id:'P2-2',t:'响应式策略',f:'H5 大屏 / 安全区 / 横屏',a:'1440px 下表单不拉伸；横屏无溢出'},
+    {id:'P2-3',t:'长列表性能',f:'全量 v-for + onReachBottom',a:'50 条上限 + 加载更多；超阈值接虚拟列表'},
+    {id:'P2-4',t:'帮助闭环',f:'profile 客服 / 关于',a:'无只弹 toast 的入口'},
+    {id:'P2-5',t:'品牌与文案统一',f:'四套品牌名 / --f-tip 22rpx',a:'已完成：三端 pages.json 统一「心飞速运」；--f-tip 提升到 24rpx 并补 --f-hero'}
+  ]}
+];
+
+const KEY = 'tms-ui-todo-v1';
+// 已实跑并验收通过的条目：批次一全量 + 批次二全量 + 批次三 3.2–3.7 + P1-1~P1-5 + P2-5。
+// 3.1 / P1-6 / P2-1~P2-4 保持未勾选。仅首次打开（本地无记录）时生效，之后一律以用户勾选为准。
+const DEFAULT_DONE = ['1.1', '1.2', '1.3', '1.4', '2.1', '2.2', '2.3', '2.4', '2.5', '2.6', '2.7', '2.8', '3.2', '3.3', '3.4', '3.5', '3.6', '3.7', 'P1-1', 'P1-2', 'P1-3', 'P1-4', 'P1-5', 'P2-5'];
+let done = [];
+try {
+  const saved = localStorage.getItem(KEY);
+  done = saved ? JSON.parse(saved) : [...DEFAULT_DONE];
+  if (!Array.isArray(done)) done = [...DEFAULT_DONE];
+} catch (e) { done = [...DEFAULT_DONE]; }
+let filter = 'all';
+let folded = new Set();
+
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const root = document.getElementById('batches');
+
+function render(){
+  root.innerHTML = BATCHES.map(b => {
+    const list = b.tasks.map(t => `
+      <li class="task${done.includes(t.id) ? ' done' : ''}" data-id="${esc(t.id)}" data-batch="${b.id}">
+        <label class="check">
+          <input type="checkbox" ${done.includes(t.id) ? 'checked' : ''} aria-label="标记完成：${esc(t.t)}">
+          <span class="box" aria-hidden="true"></span>
+        </label>
+        <div class="task-body">
+          <div class="task-head">
+            <span class="task-id">${esc(t.id)}</span>
+            <h3 class="task-title">${esc(t.t)}</h3>
+            <span class="state">${done.includes(t.id) ? '已完成' : '未开始'}</span>
+          </div>
+          <div class="task-meta">
+            <div class="row"><span class="tag">文件</span><span><code>${esc(t.f)}</code></span></div>
+            <div class="row"><span class="tag">验收</span><span>${esc(t.a)}</span></div>
+          </div>
+        </div>
+      </li>`).join('');
+    const n = b.tasks.filter(t => done.includes(t.id)).length;
+    return `<section class="batch" data-batch="${b.id}">
+      <button class="batch-head" aria-expanded="${!folded.has(b.id)}" data-fold="${b.id}">
+        <span class="batch-num">${b.num}</span>
+        <span class="batch-title">${esc(b.title)}</span>
+        <span class="batch-count">${n} / ${b.tasks.length}</span>
+        <span class="batch-sub">${esc(b.sub)}</span>
+        <span class="chev">${folded.has(b.id) ? '展开 +' : '收起 −'}</span>
+      </button>
+      <ul class="tasks" ${folded.has(b.id) ? 'hidden' : ''}>${list}</ul>
+    </section>`;
+  }).join('');
+  applyFilter();
+  updateProgress();
+}
+
+function applyFilter(){
+  let visible = 0;
+  root.querySelectorAll('.task').forEach(li => {
+    const batchOk = filter === 'all' || filter === 'todo' || li.dataset.batch === filter;
+    const doneOk = filter !== 'todo' || !done.includes(li.dataset.id);
+    const foldOk = !folded.has(li.dataset.batch);
+    const show = batchOk && doneOk && foldOk;
+    li.hidden = !show;
+    if (show) visible++;
+  });
+  root.querySelectorAll('.batch').forEach(sec => {
+    const any = [...sec.querySelectorAll('.task')].some(li => !li.hidden);
+    sec.hidden = !(filter === 'all' || filter === 'todo' || sec.dataset.batch === filter) || (!any && filter !== 'all' && filter !== 'todo');
+    if (!any && (filter === 'all' || filter === 'todo')) sec.hidden = false;
+  });
+  const empty = document.getElementById('empty');
+  empty.hidden = visible > 0;
+  document.getElementById('emptyText').textContent = filter === 'todo'
+    ? '所有任务都已勾选完成，可以开始核对验收命令了。'
+    : '该批次暂无匹配任务；切换到「全部」查看完整 30 条。';
+}
+
+function updateProgress(){
+  const total = BATCHES.reduce((n,b) => n + b.tasks.length, 0);
+  const n = BATCHES.reduce((acc,b) => acc + b.tasks.filter(t => done.includes(t.id)).length, 0);
+  document.getElementById('doneCount').textContent = n;
+  document.getElementById('totalCount').textContent = total;
+  document.getElementById('progressFill').style.width = (n / total * 100) + '%';
+  document.getElementById('progressNote').textContent = n === 0
+    ? '勾选状态保存在此浏览器'
+    : n === total ? '全部完成 · 请跑一遍验收命令' : `已完成 ${n} 条，剩余 ${total - n} 条`;
+  root.querySelectorAll('.batch').forEach(sec => {
+    const b = BATCHES.find(x => x.id === sec.dataset.batch);
+    const c = b.tasks.filter(t => done.includes(t.id)).length;
+    sec.querySelector('.batch-count').textContent = `${c} / ${b.tasks.length}`;
+  });
+}
+
+root.addEventListener('change', e => {
+  if (!e.target.matches('.check input')) return;
+  const li = e.target.closest('.task');
+  const id = li.dataset.id;
+  if (e.target.checked) { if (!done.includes(id)) done.push(id); }
+  else done = done.filter(x => x !== id);
+  try { localStorage.setItem(KEY, JSON.stringify(done)); } catch (err) {}
+  li.classList.toggle('done', e.target.checked);
+  li.querySelector('.state').textContent = e.target.checked ? '已完成' : '未开始';
+  updateProgress();
+  if (filter === 'todo') applyFilter();
+});
+
+root.addEventListener('click', e => {
+  const btn = e.target.closest('[data-fold]');
+  if (!btn) return;
+  const id = btn.dataset.fold;
+  if (folded.has(id)) folded.delete(id); else folded.add(id);
+  render();
+});
+
+document.querySelectorAll('.filter').forEach(btn => {
+  btn.addEventListener('click', () => {
+    filter = btn.dataset.filter;
+    document.querySelectorAll('.filter').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+    folded.clear();
+    render();
+  });
+});
+
+document.getElementById('foldAll').addEventListener('click', e => {
+  if (folded.size === BATCHES.length) { folded.clear(); e.target.textContent = '全部收起'; }
+  else { BATCHES.forEach(b => folded.add(b.id)); e.target.textContent = '全部展开'; }
+  render();
+});
+
+document.getElementById('showAll').addEventListener('click', () => {
+  document.querySelector('[data-filter="all"]').click();
+});
+
+document.getElementById('copyBtn').addEventListener('click', async e => {
+  const text = document.getElementById('cmdText').textContent;
+  try { await navigator.clipboard.writeText(text); e.target.textContent = '已复制'; }
+  catch (err) { e.target.textContent = '请手动选中'; }
+  setTimeout(() => { e.target.textContent = '复制'; }, 1800);
+});
+
+render();
+</script>
+</body>
+</html>

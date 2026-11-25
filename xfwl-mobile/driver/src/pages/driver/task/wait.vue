@@ -1,14 +1,7 @@
 <template>
   <view class="page">
     <view class="list-wrap">
-      <u-skeleton v-if="loading && list.length === 0" :rows="4" title animated />
-      <view v-else-if="error" class="state-wrap">
-        <u-empty mode="network" text="加载失败，请检查网络后重试"></u-empty>
-        <view class="retry-wrap">
-          <u-button type="primary" size="small" shape="circle" text="重试" @click="loadData()"></u-button>
-        </view>
-      </view>
-      <u-empty v-else-if="list.length === 0" mode="list" text="暂无任务，请保持接单状态"></u-empty>
+      <StatusBlock :state="listState" message="待接任务加载失败，请检查网络后重试" empty-text="暂无任务，请保持接单状态" @retry="loadData()">
       <view
         v-for="item in list"
         :key="item.id"
@@ -42,12 +35,14 @@
         </view>
       </view>
       <u-loadmore v-if="list.length > 0" :status="loadStatus"></u-loadmore>
+      </StatusBlock>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import StatusBlock from '@/components/StatusBlock.vue'
 import { cargoWait } from '@/common/api/driver'
 import { driverJobStatusView } from '@/common/constants'
 import { onShow, onReachBottom, onPullDownRefresh } from '@dcloudio/uni-app'
@@ -55,6 +50,11 @@ import { onShow, onReachBottom, onPullDownRefresh } from '@dcloudio/uni-app'
 const list = ref<any[]>([])
 const loading = ref(false)
 const error = ref(false)
+const listState = computed(() =>
+  loading.value && list.value.length === 0 ? 'loading'
+    : error.value ? 'fail'
+      : list.value.length === 0 ? 'empty' : 'success'
+)
 const loadStatus = ref('loadmore')
 const page = ref(1)
 const pageSize = 10
@@ -102,12 +102,12 @@ onReachBottom(() => {
 })
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .list-wrap {
   margin-top: var(--s-3);
 }
 .state-wrap {
-  padding-top: 120rpx;
+  padding-top: var(--sz-120);
 }
 .retry-wrap {
   display: flex;

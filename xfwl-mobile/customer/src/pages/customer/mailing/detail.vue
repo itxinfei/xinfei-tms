@@ -1,15 +1,15 @@
 <template>
   <view class="page">
-    <u-navbar :title="'运单详情'" :back="true" :borderBottom="false" bgColor="#FFFFFF" title-color="#000000" left-icon-color="var(--c-text-1)" placeholder />
+    <u-navbar :title="'运单详情'" :back="true" :borderBottom="false" bgColor="var(--c-surface)" title-color="var(--c-text-1)" left-icon-color="var(--c-text-1)" placeholder />
 
-    <!-- 加载/空态 -->
-    <view v-if="loading && !detail" class="state-wrap">
-      <u-loading-page :loading="true" :bgColor="'var(--c-bg)'" />
-    </view>
-    <view v-else-if="!detail" class="state-wrap">
-      <u-empty mode="data" text="运单不存在" />
-    </view>
-    <template v-else>
+    <!-- 三态统一：加载中 / 失败（带诊断文案与重试）/ 不存在 / 正常 -->
+    <StatusBlock
+      :state="detailState"
+      :message="errorMsg"
+      empty-text="运单不存在"
+      :retryable="detailState === 'empty' ? false : true"
+      @retry="loadDetail"
+    >
       <!-- 状态条 -->
       <view class="status-hero">
         <u-tag :text="statusInfo(detail.status).label" :type="statusInfo(detail.status).type" :plain="false" size="large" />
@@ -86,8 +86,8 @@
         <u-button type="primary" shape="circle" plain text="查看实时轨迹" class="action-btn" @click="goTrack" />
         <u-button type="primary" shape="circle" plain text="再来一单" class="action-btn" @click="goAgain" />
       </view>
-      <view style="height: 140rpx"></view>
-    </template>
+      <!-- 底部留白由 .page 的 padding-bottom: calc(var(--fixed-bottom-h) + var(--s-6)) 统一承载 -->
+    </StatusBlock>
   </view>
 </template>
 
@@ -97,25 +97,43 @@ import { onLoad } from '@dcloudio/uni-app';
 import { detail as fetchDetail, route as fetchRoute, pay, cancel } from '../../../common/api/mailing.js';
 import { statusInfo, fmtTime } from '../../../common/utils/order.js';
 import { maskName, maskPhone } from '../../../common/utils/mask.js';
+import { requestSafe, RequestState } from '../../../common/request/safe.js';
+import StatusBlock from '../../../components/StatusBlock.vue';
 
 const id = ref('');
 const detail = ref(null);
 const routeList = ref([]);
-const loading = ref(false);
+const loading = ref(true);
+const error = ref(false);
+const errorMsg = ref('');
 
 // 仅"待取件(1)"可取消、可支付（《07》§一紧凑码）
 const canCancel = computed(() => detail.value && detail.value.status === 1);
 const canPay = computed(() => detail.value && detail.value.status === 1);
 
+// 三态出口：加载中 / 失败（带诊断文案与重试）/ 不存在（无重试意义）/ 正常
+const detailState = computed(() =>
+  (loading.value && !detail.value) ? 'loading'
+    : error.value ? 'fail'
+      : !detail.value ? 'empty'
+        : 'success'
+);
+
 const loadDetail = async () => {
   loading.value = true;
-  try {
-    detail.value = await fetchDetail(id.value);
-  } catch (e) {
-    detail.value = null;
-  } finally {
-    loading.value = false;
+  error.value = false;
+  errorMsg.value = '';
+  // 三值返回：失败不再被吞成空对象，统一由 StatusBlock 展示诊断文案与重试
+  const result = await requestSafe(() => fetchDetail(id.value), {
+    fallback: '运单详情加载失败，请检查网络后重试',
+  });
+  if (result.state === RequestState.FAIL) {
+    error.value = true;
+    errorMsg.value = result.message;
+  } else {
+    detail.value = result.data || null;
   }
+  loading.value = false;
 };
 
 const loadRoute = async () => {
@@ -124,6 +142,7 @@ const loadRoute = async () => {
     const list = data || [];
     routeList.value = list.slice().sort((a, b) => (a.time > b.time ? 1 : -1));
   } catch (e) {
+    uni.showToast({ title: "物流信息加载失败，请重试", icon: "none" })
     routeList.value = [];
   }
 };
@@ -139,7 +158,9 @@ const handlePay = async () => {
         uni.showToast({ title: '支付成功', icon: 'success' });
         loadDetail();
         loadRoute();
-      } catch (e) { /* 错误已提示 */ }
+      } catch (e) {
+        uni.showToast({ title: "运单操作失败，请重试", icon: "none" })
+      }
     },
   });
 };
@@ -155,7 +176,9 @@ const handleCancel = async () => {
         uni.showToast({ title: '已取消', icon: 'success' });
         loadDetail();
         loadRoute();
-      } catch (e) { /* 错误已提示 */ }
+      } catch (e) {
+        uni.showToast({ title: "运单操作失败，请重试", icon: "none" })
+      }
     },
   });
 };
@@ -200,10 +223,9 @@ onLoad((options) => {
 </script>
 
 <style lang="scss" scoped>
-.state-wrap { padding-top: 120rpx; }
 .status-hero {
-  margin: 24rpx;
-  padding: 32rpx;
+  margin: var(--s-6);
+  padding: var(--s-8);
   background: var(--c-surface);
   border-radius: var(--r-md);
   box-shadow: var(--shadow-card);
@@ -219,12 +241,12 @@ onLoad((options) => {
   font-size: var(--f-sub);
   font-weight: 600;
   color: var(--c-text-1);
-  margin-bottom: 16rpx;
+  margin-bottom: var(--s-4);
 }
 .info-row {
   display: flex;
   justify-content: space-between;
-  padding: 10rpx 0;
+  padding: var(--s-2) 0;
   font-size: var(--f-body);
 }
 .info-label { color: var(--c-text-3); }
@@ -232,46 +254,46 @@ onLoad((options) => {
 .info-copy {
   display: flex;
   align-items: center;
-  gap: 12rpx;
+  gap: var(--s-3);
 }
 .copy-btn {
   font-size: var(--f-tip);
   color: var(--c-primary);
 }
-.pod-reject { color: var(--c-danger, #ee0a24); }
+.pod-reject { color: var(--c-error); }
 .pod-photos {
   display: flex;
   flex-wrap: wrap;
-  gap: 16rpx;
-  padding-top: 12rpx;
+  gap: var(--s-4);
+  padding-top: var(--s-3);
 }
 .pod-img {
-  width: 200rpx;
-  height: 200rpx;
-  border-radius: 12rpx;
-  background: var(--c-bg, #f7f8fa);
+  width: var(--sz-200);
+  height: var(--sz-200);
+  border-radius: var(--r-sm);
+  background: var(--c-bg);
 }
 .route-empty {
-  padding: 32rpx 0;
+  padding: var(--s-8) 0;
   text-align: center;
   color: var(--c-text-3);
   font-size: var(--f-aux);
 }
-.route-timeline { padding: 8rpx 0; }
+.route-timeline { padding: var(--s-2) 0; }
 .route-node { display: flex; }
 .node-left {
-  width: 32rpx;
+  width: var(--s-8);
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-right: 12rpx;
+  margin-right: var(--s-3);
 }
 .node-dot {
-  width: 16rpx;
-  height: 16rpx;
+  width: var(--s-4);
+  height: var(--s-4);
   border-radius: 50%;
   background: var(--c-primary);
-  margin-top: 8rpx;
+  margin-top: var(--s-2);
   flex-shrink: 0;
 }
 .node-dot.last { background: var(--c-success); }
@@ -279,23 +301,23 @@ onLoad((options) => {
   flex: 1;
   width: 2rpx;
   background: var(--c-border);
-  min-height: 40rpx;
+  min-height: var(--s-9);
 }
-.node-body { padding-bottom: 28rpx; }
+.node-body { padding-bottom: var(--s-7); }
 .node-msg {
   font-size: var(--f-body);
   color: var(--c-text-1);
 }
 .node-time {
-  margin-top: 4rpx;
+  margin-top: var(--s-1);
   font-size: var(--f-tip);
   color: var(--c-text-3);
 }
 .detail-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 16rpx;
-  padding-bottom: 24rpx;
+  gap: var(--s-4);
+  padding-bottom: var(--s-6);
 }
 .action-btn { flex: 1; }
 </style>

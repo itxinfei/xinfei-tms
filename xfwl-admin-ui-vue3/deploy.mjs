@@ -13,7 +13,7 @@
  */
 import { execSync } from "node:child_process";
 
-const HOST = "www.youlai.tech"; // 服务器 IP，改为你的
+const HOST = "your-server-host"; // 部署服务器 IP 或域名，按实际环境修改
 const USER = "root"; // SSH 用户名，改为你的
 const PORT = 1010; // SSH 端口，改为你的
 const TARGET = "/mnt/nginx/html/vue"; // 部署目录，改为你的

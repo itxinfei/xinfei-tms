@@ -5,7 +5,7 @@ import com.xinfei.common.base.BaseStatusEnum;
 /**
  * 运输任务状态
  *
- * @author itcast
+ * @author xinfei
  */
 
 public enum DriverJobStatus implements BaseStatusEnum<Integer, String> {

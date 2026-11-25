@@ -70,6 +70,7 @@ async function loadProfile() {
   try {
     profile.value = await userProfile()
   } catch (e) {
+    uni.showToast({ title: "个人信息加载失败，请重试", icon: "none" })
     profile.value = {}
   }
 }
@@ -84,6 +85,7 @@ async function goCarInfo() {
       profile.value = p || {}
       id = p?.truckId || ''
     } catch (e) {
+      uni.showToast({ title: "个人信息加载失败，请重试", icon: "none" })
       id = ''
     }
   }
@@ -107,7 +109,7 @@ function onLogout() {
 onShow(() => loadProfile())
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .hero {
   background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-dark) 100%);
   margin: calc(var(--s-4) * -1) calc(var(--s-4) * -1) var(--s-4);

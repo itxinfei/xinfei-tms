@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * 分页结果包装
  *
- * @author itcast
+ * @author xinfei
  */
 @Data
 @Schema(description = "分页数据统一对象")

@@ -1,6 +1,6 @@
 <template>
   <view class="page">
-    <u-navbar :title="'我的'" :back="false" :borderBottom="false" bgColor="#FFFFFF" title-color="#000000" left-icon-color="var(--c-text-1)" placeholder />
+    <u-navbar :title="'我的'" :back="false" :borderBottom="false" bgColor="var(--c-surface)" title-color="var(--c-text-1)" left-icon-color="var(--c-text-1)" placeholder />
 
     <!-- 用户信息 -->
     <view class="profile-hero">
@@ -32,16 +32,11 @@
       </view>
     </view>
 
-    <view class="action-bar">
+    <!-- 退出登录回到内容流，不再与原生 tabBar 争夺底部固定层 -->
+    <view class="logout-wrap">
       <u-button type="error" shape="circle" plain text="退出登录" class="logout-btn" @click="handleLogout" />
     </view>
-    <view style="height: 140rpx"></view>
-
-    <u-tabbar :value="2" :fixed="true" :placeholder="true" :safeAreaInsetBottom="true" activeColor="var(--c-primary)" inactiveColor="#86909C">
-      <u-tabbar-item text="首页" icon="home" @click="goHome" />
-      <u-tabbar-item text="我的运单" icon="list" @click="goMailingList" />
-      <u-tabbar-item text="我的" icon="account" @click="goProfile" />
-    </u-tabbar>
+    <!-- 底部导航由 pages.json 原生 tabBar 提供 -->
   </view>
 </template>
 
@@ -67,17 +62,17 @@ const load = async () => {
   try {
     profile.value = await userStore.fetchProfile();
   } catch (e) {
+    uni.showToast({ title: "个人信息加载失败，请重试", icon: "none" })
     profile.value = null;
   }
 };
 
 const goAddress = () => uni.navigateTo({ url: '/pages/customer/address/list' });
-const goMailingList = () => uni.reLaunch({ url: '/pages/customer/mailing/list' });
+// 标签页用 switchTab，保留页面栈与筛选状态；其余页面用 navigateTo
+const goMailingList = () => uni.switchTab({ url: '/pages/customer/mailing/list' });
 const goAgency = () => uni.navigateTo({ url: '/pages/customer/agency/list' });
-const goAbout = () => uni.showToast({ title: '心飞物流TMS v1.0', icon: 'none' });
+const goAbout = () => uni.showToast({ title: '心飞速运 v1.0', icon: 'none' });
 const goService = () => uni.showToast({ title: '客服热线即将开放', icon: 'none' });
-const goHome = () => uni.reLaunch({ url: '/pages/customer/home/index' });
-const goProfile = () => uni.reLaunch({ url: '/pages/customer/profile/index' });
 
 // 菜单分组（《70》§3.1：寄件服务 / 设置 / 关于）
 const menuGroups = [
@@ -120,18 +115,21 @@ onShow(() => {
 
 <style lang="scss" scoped>
 .profile-hero {
-  background: linear-gradient(135deg, #FF0033 0%, #CC0029 100%);
-  padding: 48rpx 40rpx 64rpx;
+  background: var(--c-surface);
+  border: 1rpx solid var(--c-border);
+  border-radius: var(--r-md);
+  padding: var(--s-6) var(--s-5);
   display: flex;
   align-items: center;
 }
 .avatar {
-  width: 120rpx;
-  height: 120rpx;
+  width: var(--s-13);
+  height: var(--s-13);
   border-radius: 50%;
   overflow: hidden;
-  margin-right: 24rpx;
-  background: rgba(255, 255, 255, 0.25);
+  margin-right: var(--s-6);
+  background: var(--c-fill-1);
+  flex-shrink: 0;
 }
 .avatar-img { width: 100%; height: 100%; }
 .avatar-default {
@@ -140,50 +138,51 @@ onShow(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  font-size: 48rpx;
-  font-weight: 700;
+  color: var(--c-text-2);
+  font-size: var(--f-title);
+  font-weight: var(--fw-semibold);
 }
 .profile-name {
-  color: #fff;
+  color: var(--c-text-1);
   font-size: var(--f-title);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 .profile-phone {
-  margin-top: 8rpx;
-  color: rgba(255, 255, 255, 0.85);
+  margin-top: var(--s-2);
+  color: var(--c-text-3);
   font-size: var(--f-aux);
 }
 .menu-group {
-  margin-top: 8rpx;
+  margin-top: var(--s-2);
 }
 .group-title {
-  margin: 0 32rpx 12rpx;
+  margin: 0 var(--s-8) var(--s-3);
   font-size: var(--f-tip);
   color: var(--c-text-3);
 }
 .menu-card {
-  margin: 0 24rpx 20rpx;
-  padding: 8rpx 24rpx;
+  margin: 0 var(--s-6) var(--s-5);
+  padding: var(--s-2) var(--s-6);
 }
 .menu-card-first {
-  margin-top: -24rpx;
+  margin-top: calc(var(--s-6) * -1);
 }
 .menu-row {
   display: flex;
   align-items: center;
-  padding: 28rpx 0;
+  padding: var(--s-7) 0;
   border-bottom: 1rpx solid var(--c-border);
 }
 .menu-row:last-child { border-bottom: none; }
 .menu-hover {
-  background-color: rgba(255, 0, 51, 0.04);
+  background-color: var(--c-primary-light);
 }
 .menu-text {
   flex: 1;
-  margin-left: 16rpx;
+  margin-left: var(--s-4);
   font-size: var(--f-body);
   color: var(--c-text-1);
 }
-.logout-btn { height: 88rpx; }
+.logout-wrap { margin: var(--s-8) var(--s-4); }
+.logout-btn { height: var(--s-13); }
 </style>

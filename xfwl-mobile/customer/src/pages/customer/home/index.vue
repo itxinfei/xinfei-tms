@@ -1,52 +1,51 @@
 <template>
   <view class="page home-page">
-    <!-- 沉浸式品牌渐变头（页级 navigationStyle:custom，替代原生栏与 u-navbar） -->
-    <view class="home-hero">
-      <view class="hero-bar"><text class="hero-brand">心飞物流</text></view>
-      <view class="home-title">{{ greeting }}</view>
-      <view class="home-count">
-        <view class="count-num">{{ countNum }}</view>
-        <view class="count-label">当前进行中的订单</view>
+    <!-- 中性标题区：品牌 + 问候；不再用整屏红渐变承载白字（对比度 3.07:1） -->
+    <view class="home-head">
+      <text class="head-brand t-aux">心飞速运</text>
+      <text class="t-title head-greeting">{{ greeting }}</text>
+      <text class="t-aux head-sub">寄件、查件，从这里开始</text>
+    </view>
+
+    <!-- 整页唯一视觉主操作：品牌红只占这一小块 -->
+    <view class="primary-cta">
+      <u-button
+        type="primary"
+        text="我要寄件"
+        shape="circle"
+        :customStyle="ctaStyle"
+        @click="goMailing"
+      />
+      <text class="t-tip cta-hint">在线下单 · 运费即时试算</text>
+    </view>
+
+    <!-- 查单输入：关键词通过一次性本地存储带到运单列表（switchTab 不支持 query） -->
+    <view class="card search-card">
+      <text class="t-sub search-label">查询运单</text>
+      <view class="search-row">
+        <u-input v-model="waybillNo" placeholder="输入运单号" border="surround" clearable />
+        <u-button type="primary" plain text="查询" @click="goSearch" />
       </view>
     </view>
 
-    <!-- 功能入口 -->
-    <view class="home-entries">
-      <view class="entry-card" @click="goMailing">
-        <view class="entry-icon"><u-icon name="box" color="var(--c-primary)" size="40" /></view>
-        <view class="entry-name">我要寄件</view>
-        <view class="entry-desc">在线下单 · 运费即时试算</view>
+    <!-- 进行中订单：加载中 / 成功 / 失败三态，失败给可见文案与重试 -->
+    <view class="card count-card">
+      <view class="count-main">
+        <text class="t-aux">进行中的订单</text>
+        <text class="t-display count-num">{{ countText }}</text>
       </view>
-      <view class="entry-card" @click="goList">
-        <view class="entry-icon"><u-icon name="search" color="var(--c-primary)" size="40" /></view>
-        <view class="entry-name">查快递</view>
-        <view class="entry-desc">运单列表 · 轨迹查询</view>
-      </view>
-      <view class="entry-card" @click="goAddress">
-        <view class="entry-icon"><u-icon name="map" color="var(--c-primary)" size="40" /></view>
-        <view class="entry-name">地址簿</view>
-        <view class="entry-desc">常用地址管理</view>
-      </view>
-      <view class="entry-card" @click="goAgency">
-        <view class="entry-icon"><u-icon name="location" color="var(--c-primary)" size="40" /></view>
-        <view class="entry-name">网点查询</view>
-        <view class="entry-desc">附近网点自寄参考</view>
-      </view>
-      <view class="entry-card" @click="goPriceQuery">
-        <view class="entry-icon"><u-icon name="rmb" color="var(--c-primary)" size="40" /></view>
-        <view class="entry-name">运费查询</view>
-        <view class="entry-desc">快速估算寄递费用</view>
+      <view class="count-side">
+        <text class="t-tip" :class="{ 'is-error': countFailed }">{{ countState }}</text>
+        <u-button v-if="countFailed" type="primary" plain size="mini" text="重试" @click="loadCount" />
       </view>
     </view>
 
-    <!-- 主操作悬浮：立即寄件 -->
-    <u-button class="fab-apply" text="立即寄件" shape="circle" color="var(--c-primary)" @click="goMailing" />
-
-    <u-tabbar :value="0" :fixed="true" :placeholder="true" :safeAreaInsetBottom="true" activeColor="var(--c-primary)" inactiveColor="#86909C">
-      <u-tabbar-item text="首页" icon="home" @click="goHome" />
-      <u-tabbar-item text="我的运单" icon="list" @click="goList" />
-      <u-tabbar-item text="我的" icon="account" @click="goProfile" />
-    </u-tabbar>
+    <!-- 次要入口降为一行文字链接，不参与主视觉竞争 -->
+    <view class="secondary">
+      <text class="t-body link" @click="goAddress">地址簿</text>
+      <text class="t-body link" @click="goAgency">网点查询</text>
+      <text class="t-body link" @click="goPriceQuery">运费查询</text>
+    </view>
   </view>
 </template>
 
@@ -57,7 +56,13 @@ import { count } from '../../../common/api/mailing.js';
 import { useUserStore } from '../../../stores/user.js';
 
 const userStore = useUserStore();
-const countNum = ref('-');
+const waybillNo = ref('');
+const countNum = ref(0);
+const countLoading = ref(true);
+const countFailed = ref(false);
+
+// 主按钮高度用令牌，不写死 rpx；--s-13 = 96rpx，满足单手触控热区下限
+const ctaStyle = { height: 'var(--s-13)', fontSize: 'var(--f-sub)' };
 
 const greeting = computed(() => {
   const h = new Date().getHours();
@@ -67,22 +72,41 @@ const greeting = computed(() => {
   return name ? `${part}，${name}` : part;
 });
 
+const countText = computed(() =>
+  countLoading.value ? '…' : countFailed.value ? '—' : String(countNum.value)
+);
+const countState = computed(() =>
+  countLoading.value ? '正在获取' : countFailed.value ? '暂不可用' : '实时更新'
+);
+
 const loadCount = async () => {
+  countLoading.value = true;
+  countFailed.value = false;
   try {
     const data = await count();
-    countNum.value = data && data.count !== undefined ? data.count : 0;
+    countNum.value = data && data.count !== undefined ? Number(data.count) || 0 : 0;
   } catch (e) {
-    countNum.value = '-';
+    countFailed.value = true;
+    uni.showToast({ title: '订单数暂不可用', icon: 'none' });
+  } finally {
+    countLoading.value = false;
   }
 };
 
 const goMailing = () => uni.navigateTo({ url: '/pages/customer/mailing/create' });
-const goList = () => uni.reLaunch({ url: '/pages/customer/mailing/list' });
 const goAddress = () => uni.navigateTo({ url: '/pages/customer/address/list' });
 const goAgency = () => uni.navigateTo({ url: '/pages/customer/agency/list' });
 const goPriceQuery = () => uni.navigateTo({ url: '/pages/customer/price/query' });
-const goHome = () => uni.reLaunch({ url: '/pages/customer/home/index' });
-const goProfile = () => uni.reLaunch({ url: '/pages/customer/profile/index' });
+
+const goSearch = () => {
+  const kw = waybillNo.value.trim();
+  if (!kw) {
+    uni.showToast({ title: '请输入运单号', icon: 'none' });
+    return;
+  }
+  uni.setStorageSync('home_search_keyword', kw);
+  uni.switchTab({ url: '/pages/customer/mailing/list' });
+};
 
 onShow(() => {
   if (!userStore.isLogin) {
@@ -95,85 +119,33 @@ onShow(() => {
 
 <style lang="scss" scoped>
 .home-page {
-  padding: 0;
-  padding-bottom: calc(var(--window-bottom) + 160rpx);
+  padding: 0 var(--s-4) var(--s-10);
 }
-.home-hero {
-  background: linear-gradient(135deg, #FF0033 0%, #CC0029 100%);
-  padding: calc(24rpx + env(safe-area-inset-top)) 48rpx 64rpx;
-  color: #fff;
-}
-.hero-bar {
-  height: 88rpx;
+.home-head {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  padding: calc(var(--s-8) + env(safe-area-inset-top)) 0 var(--s-6);
 }
-.hero-brand {
-  font-size: 34rpx;
-  font-weight: 600;
-  color: #fff;
-}
-.home-title {
-  font-size: var(--f-title);
-  font-weight: 600;
-}
-.home-count {
-  margin-top: 32rpx;
+.head-brand { letter-spacing: var(--s-1); }
+.head-greeting { margin-top: var(--s-3); }
+.head-sub { margin-top: var(--s-2); }
+.primary-cta { margin: 0 0 var(--s-8); }
+.cta-hint { display: block; text-align: center; margin-top: var(--s-3); }
+.search-card { padding: var(--s-4); }
+.search-label { display: block; margin-bottom: var(--s-3); }
+.search-row { display: flex; align-items: center; }
+.search-row :deep(.u-input) { flex: 1; margin-right: var(--s-2); }
+.search-row :deep(.u-button) { flex-shrink: 0; }
+.count-card { display: flex; justify-content: space-between; align-items: center; }
+.count-main { display: flex; flex-direction: column; }
+.count-num { margin-top: var(--s-1); }
+.count-side { display: flex; flex-direction: column; align-items: flex-end; }
+.count-side :deep(.u-button) { margin-top: var(--s-2); }
+.is-error { color: var(--c-error); }
+.secondary {
   display: flex;
-  align-items: baseline;
+  justify-content: space-around;
+  padding: var(--s-6) 0;
 }
-.count-num {
-  font-size: 72rpx;
-  font-weight: 700;
-  margin-right: 16rpx;
-}
-.count-label {
-  color: rgba(255, 255, 255, 0.85);
-  font-size: var(--f-aux);
-}
-.home-entries {
-  display: flex;
-  flex-wrap: wrap;
-  margin: -24rpx 24rpx 0;
-}
-.entry-card {
-  width: calc(50% - 12rpx);
-  margin: 12rpx 6rpx;
-  background: var(--c-surface);
-  border-radius: var(--r-md);
-  padding: 28rpx 24rpx;
-  box-shadow: var(--shadow-card);
-  box-sizing: border-box;
-}
-.entry-icon {
-  width: 72rpx;
-  height: 72rpx;
-  border-radius: var(--r-md);
-  background: var(--c-primary-light);
-  color: var(--c-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 36rpx;
-  font-weight: 600;
-}
-.entry-name {
-  margin-top: 16rpx;
-  font-size: var(--f-sub);
-  color: var(--c-text-1);
-  font-weight: 600;
-}
-.entry-desc {
-  margin-top: 6rpx;
-  font-size: var(--f-tip);
-  color: var(--c-text-3);
-}
-.fab-apply {
-  position: fixed;
-  left: 48rpx;
-  right: 48rpx;
-  bottom: calc(var(--window-bottom) + 24rpx);
-  z-index: 10;
-}
+.link { color: var(--c-text-3); text-decoration: underline; }
 </style>

@@ -3,7 +3,7 @@
     <!-- 日期选择：后端按 actual_end_time 当日过滤（yyyy-MM-dd） -->
     <view class="card date-card">
       <text class="date-label">统计日期</text>
-      <picker mode="date" :value="date" :end="today" @change="onDateChange">
+      <picker mode="date" :value="date" :end="today" @change="onDateChangeDebounced">
         <view class="date-cell">
           <text class="date-value">{{ date }}</text>
           <u-icon name="calendar" color="var(--c-text-3)" size="18" />
@@ -30,14 +30,7 @@
     <!-- 当日已完成任务明细 -->
     <view class="section-title">当日已完成任务</view>
     <view class="list-wrap">
-      <u-skeleton v-if="loading && list.length === 0" :rows="4" title animated />
-      <view v-else-if="error" class="state-wrap">
-        <u-empty mode="network" text="加载失败，请检查网络后重试"></u-empty>
-        <view class="retry-wrap">
-          <u-button type="primary" size="small" shape="circle" text="重试" @click="loadList()"></u-button>
-        </view>
-      </view>
-      <u-empty v-else-if="list.length === 0" mode="list" text="当日暂无已完成任务"></u-empty>
+      <StatusBlock :state="listState" message="当日统计加载失败，请检查网络后重试" empty-text="当日暂无已完成任务" @retry="loadList()">
       <view
         v-for="item in list"
         :key="item.id"
@@ -54,6 +47,7 @@
         </view>
       </view>
       <u-loadmore v-if="list.length > 0" :status="loadStatus"></u-loadmore>
+      </StatusBlock>
     </view>
   </view>
 </template>
@@ -61,9 +55,11 @@
 <script setup lang="ts">
 // DIS-06 快递员绩效统计：复用 courierCount / pickupDispatchPage（status=已完成 + date 过滤）
 import { ref, computed } from 'vue'
+import StatusBlock from '@/components/StatusBlock.vue'
 import { courierCount, pickupDispatchPage } from '@/common/api/courier'
 import { taskTypeView, TASK_TYPE_PICKUP, TASK_TYPE_DISPATCH, TASK_STATUS_COMPLETED } from '@/common/constants'
 import { maskName } from '@/common/utils/desensitive'
+import { debounce } from '@/common/request/safe'
 import { onShow, onReachBottom } from '@dcloudio/uni-app'
 
 function fmtDate(d: Date): string {
@@ -79,6 +75,11 @@ const dispatchCount = ref(0)
 const list = ref<any[]>([])
 const loading = ref(false)
 const error = ref(false)
+const listState = computed(() =>
+  loading.value && list.value.length === 0 ? 'loading'
+    : error.value ? 'fail'
+      : list.value.length === 0 ? 'empty' : 'success'
+)
 const loadStatus = ref('loadmore')
 const page = ref(1)
 const pageSize = 10
@@ -132,6 +133,7 @@ function onDateChange(e: any) {
   loadStats()
   loadList()
 }
+const onDateChangeDebounced = debounce(onDateChange, 300)
 
 function goDetail(id: string) {
   uni.navigateTo({ url: '/pages/courier/task/detail?id=' + id })
@@ -149,7 +151,7 @@ onReachBottom(() => {
 })
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .date-card {
   display: flex;
   align-items: center;
@@ -168,7 +170,7 @@ onReachBottom(() => {
   padding: var(--s-2) var(--s-3);
   background: var(--c-bg);
   border-radius: var(--r-sm);
-  min-width: 320rpx;
+  min-width: var(--sz-320);
 }
 .date-value {
   font-size: var(--f-body);
@@ -185,7 +187,7 @@ onReachBottom(() => {
   align-items: center;
 }
 .stat-num {
-  font-size: 48rpx;
+  font-size: var(--f-hero);
   font-weight: 700;
   color: var(--c-primary);
 }
@@ -204,7 +206,7 @@ onReachBottom(() => {
   margin-top: var(--s-3);
 }
 .state-wrap {
-  padding-top: 120rpx;
+  padding-top: var(--sz-120);
 }
 .retry-wrap {
   display: flex;

@@ -2,59 +2,73 @@
   <view class="page">
     <u-navbar title="运费查询" :back="true" :borderBottom="false" bgColor="var(--c-primary)" placeholder />
 
-    <!-- 地址信息：复用地址簿选择回传（与寄件页同一交互） -->
-    <view class="card">
-      <view class="card-title">地址信息</view>
-      <view class="addr-row" @click="pickAddress('send')">
-        <view class="addr-icon send">寄</view>
-        <view class="addr-body">
-          <view class="addr-name">{{ sendAddr ? sendAddr.fullAddress || '已选择' : '选择发件地址' }}</view>
-          <view v-if="sendAddr" class="addr-contact">{{ maskName(sendAddr.name) }} {{ maskPhone(sendAddr.phoneNumber) }}</view>
-        </view>
-        <u-icon name="arrow-right" color="var(--c-text-3)" size="20" />
+    <u-form ref="formRef" :model="form" :rules="formRules" errorType="none">
+      <!-- 地址信息：复用地址簿选择回传（与寄件页同一交互） -->
+      <view class="card">
+        <view class="card-title">地址信息</view>
+        <FormField prop="sendAddress" :borderBottom="false">
+          <view class="addr-row" id="field-sendAddress" @click="pickAddress('send')">
+            <view class="addr-icon send">寄</view>
+            <view class="addr-body">
+              <view class="addr-name">{{ sendAddr ? sendAddr.fullAddress || '已选择' : '选择发件地址' }}</view>
+              <view v-if="sendAddr" class="addr-contact">{{ maskName(sendAddr.name) }} {{ maskPhone(sendAddr.phoneNumber) }}</view>
+            </view>
+            <u-icon name="arrow-right" color="var(--c-text-3)" size="20" />
+          </view>
+        </FormField>
+        <FormField prop="receiptAddress" :borderBottom="false">
+          <view class="addr-row" id="field-receiptAddress" @click="pickAddress('receipt')">
+            <view class="addr-icon recv">收</view>
+            <view class="addr-body">
+              <view class="addr-name">{{ recvAddr ? recvAddr.fullAddress || '已选择' : '选择收件地址' }}</view>
+              <view v-if="recvAddr" class="addr-contact">{{ maskName(recvAddr.name) }} {{ maskPhone(recvAddr.phoneNumber) }}</view>
+            </view>
+            <u-icon name="arrow-right" color="var(--c-text-3)" size="20" />
+          </view>
+        </FormField>
       </view>
-      <view class="addr-row" @click="pickAddress('receipt')">
-        <view class="addr-icon recv">收</view>
-        <view class="addr-body">
-          <view class="addr-name">{{ recvAddr ? recvAddr.fullAddress || '已选择' : '选择收件地址' }}</view>
-          <view v-if="recvAddr" class="addr-contact">{{ maskName(recvAddr.name) }} {{ maskPhone(recvAddr.phoneNumber) }}</view>
-        </view>
-        <u-icon name="arrow-right" color="var(--c-text-3)" size="20" />
-      </view>
-    </view>
 
-    <!-- 货物信息 -->
-    <view class="card">
-      <view class="card-title">货物信息</view>
-      <view class="form-row">
-        <text class="form-label">物品类型</text>
-        <view class="picker-cell" @click="showGoodsPicker = true">
-          <text class="picker-value" :class="{ placeholder: !goodsTypeName }">{{ goodsTypeName || '选择物品类型' }}</text>
-          <u-icon name="arrow-down" color="var(--c-text-3)" size="18" />
+      <!-- 货物信息 -->
+      <FormField prop="goodsWeight" :borderBottom="false">
+        <view class="card" id="field-goodsWeight">
+          <view class="card-title">货物信息</view>
+          <view class="form-row">
+            <text class="form-label">物品类型</text>
+            <view class="picker-cell" @click="showGoodsPicker = true">
+              <text class="picker-value" :class="{ placeholder: !goodsTypeName }">{{ goodsTypeName || '选择物品类型' }}</text>
+              <u-icon name="arrow-down" color="var(--c-text-3)" size="18" />
+            </view>
+          </view>
+          <view class="form-row">
+            <text class="form-label">重量(kg)</text>
+            <u-input v-model="form.goodsWeight" placeholder="请输入重量" border="none" type="digit" />
+          </view>
         </view>
-      </view>
-      <view class="form-row">
-        <text class="form-label">重量(kg)</text>
-        <u-input v-model="form.goodsWeight" placeholder="请输入重量" border="none" type="digit" />
-      </view>
-    </view>
+      </FormField>
+    </u-form>
 
-    <!-- 查询按钮 -->
-    <view class="action-bar">
+    <!-- 物品类型加载失败：不再静默吞掉，给可见状态与重试入口 -->
+    <StatusBlock
+      v-if="goodsLoadState === 'fail'"
+      state="fail"
+      message="物品类型加载失败，点重试重新加载"
+      @retry="loadGoodsTypes"
+    />
+
+    <!-- 唯一底部固定层；占位交给全局 .page 的 padding-bottom -->
+    <ActionBar>
       <u-button type="primary" shape="circle" :loading="loading" @click="handleQuery">查询运费</u-button>
-    </view>
-    <view style="height: 40rpx"></view>
+    </ActionBar>
 
-    <!-- 试算结果 -->
-    <view v-if="queried" class="card price-card">
-      <view v-if="errorMsg" class="price-error">{{ errorMsg }}</view>
-      <template v-else>
+    <!-- 试算结果：加载中 / 失败（带重试） / 成功 三态统一出口 -->
+    <view v-if="queried || loading" class="card price-card">
+      <StatusBlock :state="priceState" :message="errorMsg" @retry="handleQuery">
         <view class="price-line">
           <text class="price-label">预估运费</text>
           <text class="price-value">¥{{ priceText }}</text>
         </view>
         <view class="price-tip">试算结果仅供参考，实际运费以下单计费为准</view>
-      </template>
+      </StatusBlock>
     </view>
 
     <!-- 物品类型选择 -->
@@ -68,14 +82,20 @@ import { ref, reactive, computed, onUnmounted } from 'vue';
 import { totalPrice } from '../../../common/api/mailing.js';
 import { goodsTypeAll } from '../../../common/api/index.js';
 import { maskName, maskPhone } from '../../../common/utils/mask.js';
+import { firstValidateError, focusField } from '../../../common/ui-form.js';
+import FormField from '../../../components/FormField.vue';
+import StatusBlock from '../../../components/StatusBlock.vue';
+import ActionBar from '../../../components/ActionBar.vue';
 
 const sendAddr = ref(null);
 const recvAddr = ref(null);
 const goodsTypes = ref([]);
 const goodsTypeName = ref('');
+const goodsLoadState = ref('loading');
 const loading = ref(false);
 const queried = ref(false);
 const showGoodsPicker = ref(false);
+const formRef = ref(null);
 
 const form = reactive({
   sendAddress: '', // 地址簿 id（与寄件页口径一致，禁传文本地址）
@@ -85,9 +105,23 @@ const form = reactive({
   goodsWeight: '',
 });
 
+// 字段级校验：地址与重量都由 u-form 统一判空，页面不再手写一串 if
+const formRules = {
+  sendAddress: [{ required: true, message: '请选择发件地址', trigger: 'blur' }],
+  receiptAddress: [{ required: true, message: '请选择收件地址', trigger: 'blur' }],
+  goodsWeight: [
+    { required: true, message: '请输入重量', trigger: 'blur' },
+    {
+      validator: (_r, v, cb) => (Number(v) > 0 ? cb() : cb(new Error('重量必须大于 0'))),
+      trigger: 'blur',
+    },
+  ],
+};
+
 const price = ref(null);
 const errorMsg = ref('');
 const priceText = computed(() => (price.value !== null && price.value !== undefined ? price.value : '--'));
+const priceState = computed(() => (loading.value ? 'loading' : errorMsg.value ? 'fail' : 'success'));
 
 const goodsColumns = computed(() => [goodsTypes.value.map((g) => g.name || g.id || '未知类型')]);
 
@@ -105,20 +139,33 @@ const onGoodsConfirm = (e) => {
   showGoodsPicker.value = false;
 };
 
+const loadGoodsTypes = () => {
+  goodsLoadState.value = 'loading';
+  goodsTypeAll()
+    .then((data) => {
+      goodsTypes.value = Array.isArray(data) ? data : (data && data.items) || [];
+      goodsLoadState.value = 'success';
+    })
+    .catch(() => {
+      goodsLoadState.value = 'fail';
+      uni.showToast({ title: '物品类型加载失败，可点重试', icon: 'none' });
+    });
+};
+loadGoodsTypes();
+
 const handleQuery = async () => {
-  if (!form.sendAddress) {
-    uni.showToast({ title: '请选择发件地址', icon: 'none' });
+  try {
+    await formRef.value?.validate();
+  } catch (err) {
+    const first = firstValidateError(err);
+    uni.showToast({ title: first.message, icon: 'none' });
+    focusField(first.field);
     return;
   }
-  if (!form.receiptAddress) {
-    uni.showToast({ title: '请选择收件地址', icon: 'none' });
-    return;
-  }
-  if (!form.goodsWeight || Number(form.goodsWeight) <= 0) {
-    uni.showToast({ title: '请输入有效重量', icon: 'none' });
-    return;
-  }
+  if (loading.value) return; // 连点幂等守卫
   loading.value = true;
+  queried.value = true;
+  errorMsg.value = '';
   try {
     // 与寄件页同参结构：pickupType/payMethod 传默认值（仅参与计费口径，不产生订单）
     const data = await totalPrice({
@@ -128,7 +175,6 @@ const handleQuery = async () => {
       pickupType: 2, // 2 上门取件
       payMethod: 1, // 1 预结
     });
-    queried.value = true;
     // 后端口径：参数不全/地址解析失败时 amount="0" 且带 errorMsg；正常返回字符串金额
     if (data && data.amount !== undefined && data.amount !== '0') {
       price.value = data.amount;
@@ -138,9 +184,8 @@ const handleQuery = async () => {
       errorMsg.value = (data && data.errorMsg) || '暂时无法试算，请检查地址与货物信息';
     }
   } catch (e) {
-    queried.value = true;
     price.value = null;
-    errorMsg.value = '试算失败，请稍后重试';
+    errorMsg.value = '试算失败，请检查网络后重试';
   } finally {
     loading.value = false;
   }
@@ -160,13 +205,6 @@ uni.$on('addressSelected', onAddressSelected);
 onUnmounted(() => {
   uni.$off('addressSelected', onAddressSelected);
 });
-
-// 物品类型全量加载（失败静默，查询时后端仍会校验）
-goodsTypeAll()
-  .then((data) => {
-    goodsTypes.value = Array.isArray(data) ? data : (data && data.items) || [];
-  })
-  .catch(() => {});
 </script>
 
 <style lang="scss" scoped>
@@ -182,10 +220,10 @@ goodsTypeAll()
   padding: var(--s-3) 0;
 }
 .addr-icon {
-  width: 56rpx;
-  height: 56rpx;
+  width: var(--s-11);
+  height: var(--s-11);
   border-radius: 50%;
-  color: #fff;
+  color: var(--c-primary-on);
   font-size: var(--f-body);
   display: flex;
   align-items: center;
@@ -207,7 +245,7 @@ goodsTypeAll()
   color: var(--c-text-1);
 }
 .addr-contact {
-  margin-top: 4rpx;
+  margin-top: var(--s-1);
   font-size: var(--f-tip);
   color: var(--c-text-3);
 }
@@ -217,7 +255,7 @@ goodsTypeAll()
   padding: var(--s-3) 0;
 }
 .form-label {
-  width: 160rpx;
+  width: var(--sz-160);
   font-size: var(--f-body);
   color: var(--c-text-2);
 }
@@ -232,7 +270,7 @@ goodsTypeAll()
   color: var(--c-text-1);
 }
 .picker-value.placeholder {
-  color: var(--c-text-4);
+  color: var(--c-text-3);
 }
 .price-card {
   padding: var(--s-5) var(--s-4);
@@ -248,14 +286,9 @@ goodsTypeAll()
   margin-right: var(--s-3);
 }
 .price-value {
-  font-size: 56rpx;
+  font-size: var(--f-display);
   font-weight: 700;
   color: var(--c-primary);
-}
-.price-error {
-  text-align: center;
-  font-size: var(--f-body);
-  color: var(--c-error);
 }
 .price-tip {
   margin-top: var(--s-2);

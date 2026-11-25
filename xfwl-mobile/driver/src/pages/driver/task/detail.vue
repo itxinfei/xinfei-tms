@@ -1,8 +1,13 @@
 <template>
   <view class="page">
-    <u-empty v-if="!loading && !task" mode="list" text="未获取到任务"></u-empty>
-
-    <block v-if="task">
+    <!-- 三态统一：加载中 / 失败（带诊断文案与重试）/ 任务不存在 / 正常 -->
+    <StatusBlock
+      :state="taskState"
+      :message="errorMsg"
+      empty-text="未获取到任务"
+      :retryable="taskState === 'fail'"
+      @retry="loadAll"
+    >
       <!-- 任务信息 -->
       <view class="card">
         <view class="card-title">任务信息</view>
@@ -72,10 +77,8 @@
         <text class="loc-text" v-if="latest">{{ latest.address || (latest.lng + ',' + latest.lat) }}</text>
         <u-empty v-else mode="address" text="暂无可追踪位置"></u-empty>
       </view>
-    </block>
-
-    <!-- 操作按钮 -->
-    <view class="action-bar" v-if="task">
+      <!-- 操作按钮 -->
+      <ActionBar>
       <u-button
         type="primary"
         text="提货"
@@ -103,17 +106,21 @@
         plain
         @click="goException"
       ></u-button>
-    </view>
+      </ActionBar>
+    </StatusBlock>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import ActionBar from '@/components/ActionBar.vue'
+import StatusBlock from '@/components/StatusBlock.vue'
 import {
   cargoDetail,
   cargoOrders,
   traceLatest,
 } from '@/common/api/driver'
+import { requestSafe, RequestState } from '@/common/request/safe'
 import { useUserStore } from '@/common/store/user'
 import { driverJobStatusView, orderStatusView } from '@/common/constants'
 import { onLoad } from '@dcloudio/uni-app'
@@ -123,7 +130,9 @@ const id = ref('')
 const task = ref<any>(null)
 const orders = ref<any[]>([])
 const latest = ref<any>(null)
-const loading = ref(false)
+const loading = ref(true)
+const error = ref(false)
+const errorMsg = ref('')
 
 function jobStatusView(s?: number) {
   return driverJobStatusView(s)
@@ -134,27 +143,45 @@ function truckId(): string {
   return (task.value && task.value.truckId) || userStore.userInfo?.id || ''
 }
 
+// 三态出口：加载中 / 失败（带诊断文案与重试）/ 任务不存在（无重试意义）/ 正常
+const taskState = computed(() =>
+  (loading.value && !task.value) ? 'loading'
+    : error.value ? 'fail'
+      : !task.value ? 'empty'
+        : 'success'
+)
+
 async function loadAll() {
   if (!id.value) return
   loading.value = true
-  try {
-    // 修改点：id 为 DriverJobId
-    task.value = await cargoDetail(id.value)
-  } catch (e) {
-    task.value = null
+  error.value = false
+  errorMsg.value = ''
+  // 主加载：任务详情，失败统一由 StatusBlock 展示诊断文案与重试
+  const result = await requestSafe(() => cargoDetail(id.value), {
+    fallback: '任务详情加载失败，请检查网络后重试',
+  })
+  if (result.state === RequestState.FAIL) {
+    error.value = true
+    errorMsg.value = result.message
+    loading.value = false
+    return
   }
+  task.value = result.data || null
+  // 关联订单 / 最新位置：次级加载，失败给出可见提示，不直接改主错误态
   try {
     const res = await cargoOrders(id.value)
     // 容错：接口可能返回列表或 {items}
     if (Array.isArray(res)) orders.value = res
     else orders.value = (res && res.items) || []
   } catch (e) {
+    uni.showToast({ title: "关联订单加载失败，请重试", icon: "none" })
     orders.value = []
   }
   // 最新位置（免鉴权，按 truck 类型）
   try {
     latest.value = await traceLatest(truckId(), 'truck')
   } catch (e) {
+    uni.showToast({ title: "最新位置加载失败，请重试", icon: "none" })
     latest.value = null
   }
   loading.value = false
@@ -210,7 +237,7 @@ onLoad((opt: any) => {
 })
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .card-title {
   font-size: var(--f-sub);
   color: var(--c-text-1);
@@ -234,7 +261,7 @@ onLoad((opt: any) => {
 .value-link {
   display: flex;
   align-items: center;
-  gap: 4rpx;
+  gap: var(--s-1);
 }
 .order-item {
   display: flex;

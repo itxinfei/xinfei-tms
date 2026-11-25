@@ -40,7 +40,7 @@
       </view>
     </view>
 
-    <view class="action-bar">
+    <ActionBar>
       <u-button
         type="success"
         text="确认送达"
@@ -49,12 +49,13 @@
         :disabled="!locReady || !picture"
         @click="onConfirm"
       ></u-button>
-    </view>
+    </ActionBar>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import ActionBar from '@/components/ActionBar.vue'
 import { cargoFinish, cargoDetail, attachmentUpload } from '@/common/api/driver'
 import { onLoad } from '@dcloudio/uni-app'
 
@@ -146,6 +147,7 @@ async function onConfirm() {
     uni.showToast({ title: '送达成功', icon: 'success' })
     setTimeout(() => uni.navigateBack(), 600)
   } catch (e) {
+    uni.showToast({ title: "送达提交失败，请重试", icon: "none" })
   } finally {
     submitting.value = false
   }
@@ -159,12 +161,15 @@ onLoad((opt: any) => {
       .then((t: any) => {
         expectOrderNo.value = (t && t.tranOrderNum) || ''
       })
-      .catch(() => {})
+      .catch(() => {
+        // 不阻断送达流程，但必须给可见反馈，不能静默吞掉
+        uni.showToast({ title: '运单号核对信息加载失败，请留意手动核对', icon: 'none' })
+      })
   }
 })
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .card-title {
   font-size: var(--f-sub);
   color: var(--c-text-1);

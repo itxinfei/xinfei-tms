@@ -8,9 +8,9 @@
         @click="onScan"
       ></u-button>
       <u-gap height="20"></u-gap>
-      <!-- 修改点：扫码结果展示，业务逻辑待后端开通，仅提示 -->
-      <u-empty v-if="!scanResult" mode="scan" text="点击上方按钮扫码接单"></u-empty>
-      <view v-else class="scan-result">
+      <!-- 操作前引导：纯提示文案，非数据空态，不走 u-empty 语义 -->
+      <view v-if="!scanResult" class="scan-guide">点击上方按钮扫码接单</view>
+      <view v-else class="scan-result" aria-live="polite">
         <text class="sr-label">扫码内容</text>
         <text class="sr-value">{{ scanResult }}</text>
       </view>
@@ -38,7 +38,13 @@ function onScan() {
 }
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
+.scan-guide {
+  padding: var(--s-8) var(--s-4);
+  text-align: center;
+  font-size: var(--f-aux);
+  color: var(--c-text-3);
+}
 .scan-result {
   display: flex;
   flex-direction: column;

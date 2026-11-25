@@ -4,6 +4,12 @@
   "private": true,
   "description": "心飞物流TMS 移动端 monorepo：司机端 / 快递员端 / 客户端",
   "scripts": {
+    "guard": "node scripts/guard-ui.mjs",
+    "guard:self-test": "node scripts/guard-self-test.mjs",
+    "guard:ci": "node scripts/guard-ui.mjs --require-baseline",
+    "guard:baseline": "node scripts/guard-ui.mjs --write-baseline",
+    "check:ui": "node scripts/guard-self-test.mjs && node scripts/guard-ui.mjs --require-baseline",
+    "tokenize:rpx": "node scripts/tokenize-rpx.mjs --dry",
     "dev:driver": "pnpm -F xfwl-mobile-driver dev:h5",
     "dev:courier": "pnpm -F xfwl-mobile-courier dev:h5",
     "dev:customer": "pnpm -F xfwl-mobile-customer dev:h5",

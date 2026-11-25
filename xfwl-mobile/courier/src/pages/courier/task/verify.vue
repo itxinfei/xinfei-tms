@@ -22,7 +22,7 @@
       </text>
     </view>
 
-    <view class="action-bar">
+    <ActionBar>
       <u-button
         type="primary"
         text="核验"
@@ -30,7 +30,7 @@
         :loading="loading"
         @click="onVerify"
       ></u-button>
-    </view>
+    </ActionBar>
   </view>
 </template>
 
@@ -38,6 +38,7 @@
 // 身份证核验：接 orderNumber，输入身份证号 code，调 verifyIdCard，仅回显通过/不通过
 // 红线：禁止本地缓存或日志打印身份证号，故不输出、不存储原始身份证号
 import { ref, reactive } from 'vue'
+import ActionBar from '@/components/ActionBar.vue'
 import { verifyIdCard } from '@/common/api/courier'
 import { onLoad } from '@dcloudio/uni-app'
 
@@ -64,6 +65,7 @@ async function onVerify() {
     pass.value = !!(res && (res.pass || res.success || res.verified))
     verified.value = true
   } catch (e) {
+    uni.showToast({ title: "核验失败，请重新输入后再试", icon: "none" })
     // 接口报错也视为不通过，但保留用户重新输入
     pass.value = false
     verified.value = true
@@ -73,7 +75,7 @@ async function onVerify() {
 }
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .order-no {
   font-size: var(--f-body);
   color: var(--c-text-1);

@@ -1,0 +1,33 @@
+{
+  "generatedAt": "2026-11-08T09:10:41.246Z",
+  "total": 3,
+  "byRule": {
+    "R1": 1,
+    "R2": 0,
+    "R3": 0,
+    "R4": 0,
+    "R5": 1,
+    "R6": 0,
+    "R7": 0,
+    "R8": 0,
+    "R9": 0,
+    "R10": 0,
+    "R11": 0,
+    "R12": 1,
+    "R13": 0
+  },
+  "stats": {
+    "filesScanned": 61,
+    "vuePages": 37,
+    "catchTotal": 71,
+    "hex6All": 16,
+    "hex3All": 0,
+    "rpxAll": 49,
+    "hex6Pages": 1,
+    "rpxPages": 40,
+    "reLaunchCustomerPages": 5,
+    "ariaHits": 39,
+    "styleWithoutScopedPages": 1,
+    "pagesWithoutStates": 16
+  }
+}

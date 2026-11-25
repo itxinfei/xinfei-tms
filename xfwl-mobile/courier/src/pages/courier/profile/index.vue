@@ -37,6 +37,7 @@ async function loadProfile() {
   try {
     profile.value = await userProfile()
   } catch (e) {
+    uni.showToast({ title: "个人信息加载失败，请重试", icon: "none" })
     profile.value = null
   }
 }
@@ -57,7 +58,7 @@ function onLogout() {
 onShow(() => loadProfile())
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .profile-card {
   display: flex;
   align-items: center;
@@ -83,7 +84,7 @@ onShow(() => loadProfile())
   margin-top: var(--s-2);
 }
 .row-key {
-  width: 140rpx;
+  width: var(--sz-140);
   color: var(--c-text-3);
 }
 .row-val {

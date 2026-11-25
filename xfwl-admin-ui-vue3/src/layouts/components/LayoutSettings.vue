@@ -320,7 +320,7 @@ const tagsViewStyleOptions: TagsViewStyleOption[] = [
 const colorOptions: ColorOption[] = themeColorNames.map((name) => ({ name }));
 
 const colorPresets: Record<ThemeColorName, string[]> = {
-  primary: ["#FF0033", "#165DFF", "#1677FF", "#409EFF", "#FF7D00", "#13A970", "#14C9C9", "#EB2F96", "#722ED1"],
+  primary: ["#FF0033", "#165DFF", "#1677FF", "#FF7D00", "#13A970", "#14C9C9", "#EB2F96", "#722ED1"],
   success: ["#00B42A", "#23C343", "#67C23A", "#22C55E"],
   warning: ["#FF7D00", "#FF9A2E", "#E6A23C", "#FAAD14"],
   danger: ["#F53F3F", "#F76560", "#F56C6C", "#FF4D4F"],
@@ -330,7 +330,6 @@ const colorPresets: Record<ThemeColorName, string[]> = {
 const paletteI18nKeys: Record<string, string> = {
   arco: "arco",
   "ant-design": "antDesign",
-  "element-plus": "elementPlus",
   emerald: "emerald",
   violet: "violet",
   cyan: "cyan",

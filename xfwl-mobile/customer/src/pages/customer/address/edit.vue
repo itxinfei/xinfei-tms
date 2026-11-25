@@ -1,6 +1,6 @@
 <template>
   <view class="page">
-    <u-navbar :title="id ? '编辑地址' : '新增地址'" :back="true" :borderBottom="false" bgColor="#FFFFFF" title-color="#000000" left-icon-color="var(--c-text-1)" placeholder />
+    <u-navbar :title="id ? '编辑地址' : '新增地址'" :back="true" :borderBottom="false" bgColor="var(--c-surface)" title-color="var(--c-text-1)" left-icon-color="var(--c-text-1)" placeholder />
 
     <view class="card">
       <u-form :model="form" :rules="rules" ref="formRef">
@@ -28,12 +28,12 @@
       </u-form>
     </view>
 
-    <view class="action-bar">
+    <ActionBar>
       <u-button type="primary" shape="circle" :loading="saving" class="save-btn" @click="handleSave">
         保存地址
       </u-button>
-    </view>
-    <view style="height: 140rpx"></view>
+    </ActionBar>
+    <!-- 底部留白由 .page 的 padding-bottom: calc(var(--fixed-bottom-h) + var(--s-6)) 统一承载 -->
 
     <!-- 省市区级联 -->
     <u-picker :show="showAreaPicker" :columns="areaColumns" :loading="areaLoading" @confirm="onAreaConfirm" @cancel="showAreaPicker = false" />
@@ -42,6 +42,7 @@
 
 <script setup>
 import { ref, reactive, computed } from 'vue';
+import ActionBar from '../../../components/ActionBar.vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { save, update, detail } from '../../../common/api/address.js';
 import { areaSimple } from '../../../common/api/index.js';
@@ -156,6 +157,7 @@ const loadDetail = async (editId) => {
       }
     }
   } catch (e) {
+    uni.showToast({ title: "地址保存失败，请稍后重试", icon: "none" })
     /* 错误已提示 */
   }
 };
@@ -164,6 +166,7 @@ const handleSave = async () => {
   try {
     await formRef.value.validate();
   } catch (e) {
+    uni.showToast({ title: "地址保存失败，请稍后重试", icon: "none" })
     return;
   }
   if (!form.provinceId || !form.cityId || !form.countyId) {
@@ -180,6 +183,7 @@ const handleSave = async () => {
     uni.showToast({ title: '保存成功', icon: 'success' });
     setTimeout(() => uni.navigateBack({ delta: 1 }), 500);
   } catch (e) {
+    uni.showToast({ title: "地址保存失败，请稍后重试", icon: "none" })
     /* 错误已提示 */
   } finally {
     saving.value = false;
@@ -195,6 +199,7 @@ onLoad(async (options) => {
       await loadDetail(id.value);
     }
   } catch (e) {
+    uni.showToast({ title: "地址保存失败，请稍后重试", icon: "none" })
     /* 错误已提示 */
   } finally {
     areaLoading.value = false;
@@ -213,5 +218,5 @@ onLoad(async (options) => {
   font-size: var(--f-body);
   color: var(--c-text-1);
 }
-.save-btn { height: 88rpx; }
+.save-btn { height: var(--sz-88); }
 </style>

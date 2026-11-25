@@ -9,7 +9,7 @@ import org.apache.ibatis.annotations.Mapper;
  * 线路类型表  Mapper 接口
  * </p>
  *
- * @author itcast
+ * @author xinfei
  * @since 2019-12-20
  */
 @Mapper

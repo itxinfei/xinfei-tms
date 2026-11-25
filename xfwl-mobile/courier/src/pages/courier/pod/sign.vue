@@ -9,8 +9,8 @@
       <text class="block-title">现场照片（选填，最多3张）</text>
       <view class="photo-list">
         <view class="photo-item" v-for="(p, idx) in photos" :key="idx">
-          <image :src="p.url" class="photo-img" mode="aspectFill" @click="previewPhoto(idx)"></image>
-          <u-icon name="close-circle" class="photo-del" @click="removePhoto(idx)"></u-icon>
+          <image :src="p.url" class="photo-img" mode="aspectFill" aria-label="预览照片" @click="previewPhoto(idx)"></image>
+          <u-icon name="close-circle" class="photo-del" aria-label="删除照片" @click="removePhoto(idx)"></u-icon>
         </view>
         <view class="photo-add" v-if="photos.length < 3" @click="onChoosePhoto">
           <u-icon name="camera" size="44" color="var(--c-text-3)"></u-icon>
@@ -41,16 +41,20 @@
     </view>
 
     <!-- 备注 / 拒收原因（签收选填，拒收必填） -->
-    <view class="card">
-      <text class="block-title">备注</text>
-      <u--textarea v-model="remark" placeholder="签收备注选填；如拒收，请在此填写拒收原因（必填）" :maxlength="200"></u--textarea>
-    </view>
+    <u-form ref="formRef" :model="formModel" :rules="formRules" errorType="none">
+      <FormField prop="remark" :borderBottom="false">
+        <view class="card" id="field-remark">
+          <text class="block-title">备注</text>
+          <u--textarea v-model="remark" placeholder="签收备注选填；如拒收，请在此填写拒收原因（必填）" :maxlength="200"></u--textarea>
+        </view>
+      </FormField>
+    </u-form>
 
     <!-- 底部操作：拒收 / 签收 -->
-    <view class="action-bar">
+    <ActionBar>
       <u-button type="error" text="拒收" shape="circle" :loading="submitting" @click="onDeliver(DELIVERED_REJECT)"></u-button>
       <u-button type="primary" text="确认签收" shape="circle" :loading="submitting" @click="onDeliver(DELIVERED_SIGN)"></u-button>
-    </view>
+    </ActionBar>
 
     <!-- 离屏合成画布（烧录用，移出可视区；不能 display:none，否则位图尺寸为0） -->
     <canvas type="2d" id="wmCanvas" class="offscreen-canvas"></canvas>
@@ -60,7 +64,8 @@
 <script setup lang="ts">
 // 电子签收回单：现场照片(选填≤3)+手写签名(签收必填)+备注(拒收必填)；
 // 照片与签名图上传前统一经离屏 canvas 烧录「时间+GPS」水印，提交 URL 凭证（B2）
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import ActionBar from '@/components/ActionBar.vue'
 import {
   attachmentUpload,
   delivered,
@@ -68,6 +73,9 @@ import {
   DELIVERED_REJECT,
 } from '@/common/api/courier'
 import { wgs84ToGcj02 } from '@/common/utils/coord'
+import { CANVAS_INK, CANVAS_SURFACE } from '@/common/theme.js'
+import FormField from '@/components/FormField.vue'
+import { firstValidateError, focusField } from '@/common/ui-form.js'
 import { onLoad, onReady, onUnload } from '@dcloudio/uni-app'
 
 const MAX_PHOTOS = 3
@@ -81,6 +89,19 @@ const photos = ref<{ id: string; url: string }[]>([])
 // 签名图上传后的 URL（空=未保存签名）
 const signatureId = ref('')
 const remark = ref('')
+const formRef = ref<any>(null)
+const formModel = computed(() => ({ remark: remark.value }))
+// 签收时备注选填、拒收时必填：条件规则读 rejectMode，不把业务状态散进手写 if
+const rejectMode = ref(false)
+const formRules = {
+  remark: [{
+    validator: (_r: any, value: any, callback: any) => {
+      if (rejectMode.value && !String(value || '').trim()) callback(new Error('请填写拒收原因'))
+      else callback()
+    },
+    trigger: 'blur',
+  }],
+}
 const gpsText = ref('')
 const submitting = ref(false)
 const savingSign = ref(false)
@@ -166,7 +187,7 @@ function initSignCanvas() {
       signCanvas.height = signCssH * dpr
       signCtx = signCanvas.getContext('2d')
       signCtx.scale(dpr, dpr)
-      signCtx.strokeStyle = '#1D2129'
+      signCtx.strokeStyle = CANVAS_INK
       signCtx.lineWidth = 4
       signCtx.lineCap = 'round'
       signCtx.lineJoin = 'round'
@@ -202,6 +223,7 @@ function onChoosePhoto() {
             const att = await attachmentUpload(stamped)
             if (att?.id) photos.value.push({ id: att.id, url: att.url })
           } catch (e) {
+            uni.showToast({ title: "照片处理失败，可补拍后再签收", icon: "none" })
             // 单张失败不影响其余，但计数并提示，避免快递员误以为照片已带上
             fail++
           }
@@ -295,7 +317,7 @@ function drawWatermark(ctx: any, w: number, h: number) {
   const top = h - barH
   ctx.fillStyle = 'rgba(0,0,0,0.45)'
   ctx.fillRect(0, top, w, barH)
-  ctx.fillStyle = '#FFFFFF'
+  ctx.fillStyle = CANVAS_SURFACE
   ctx.font = `${fontSize}px sans-serif`
   ctx.textBaseline = 'top'
   lines.forEach((line, i) => {
@@ -356,7 +378,7 @@ async function saveSign() {
     wmCanvas.width = w
     wmCanvas.height = h
     // 白底（透明 PNG 上盖水印观感差，签名图统一白底 JPEG）
-    wmCtx.fillStyle = '#FFFFFF'
+    wmCtx.fillStyle = CANVAS_SURFACE
     wmCtx.fillRect(0, 0, w, h)
     wmCtx.drawImage(signCanvas, 0, 0)
     // 签名位图本身按 dpr 放大，水印绘制坐标用位图尺寸（字号随位图宽等比）
@@ -387,11 +409,16 @@ async function onDeliver(status: string) {
     uni.showToast({ title: '请手写签名并保存', icon: 'none' })
     return
   }
-  const remarkTrim = remark.value.trim()
-  if (status === DELIVERED_REJECT && !remarkTrim) {
-    uni.showToast({ title: '请填写拒收原因', icon: 'none' })
+  rejectMode.value = status === DELIVERED_REJECT
+  try {
+    await formRef.value?.validate()
+  } catch (err: any) {
+    const first = firstValidateError(err)
+    uni.showToast({ title: first.message, icon: 'none' })
+    focusField(first.field)
     return
   }
+  const remarkTrim = remark.value.trim()
   if (submitting.value) return
   submitting.value = true
   try {
@@ -404,6 +431,7 @@ async function onDeliver(status: string) {
     // 成功后保持按钮禁用（不复位 submitting），防返回延迟窗口内重复妥投/重复发 MQ
     setTimeout(goBackAfterDeliver, 600)
   } catch (e) {
+    uni.showToast({ title: "签收操作失败，请重试", icon: "none" })
     // request 封装已统一提示；仅失败时放行重试
     submitting.value = false
   }
@@ -420,7 +448,7 @@ function goBackAfterDeliver() {
 }
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .info-card {
   padding: var(--s-4);
 }
@@ -449,24 +477,24 @@ function goBackAfterDeliver() {
 }
 .photo-item {
   position: relative;
-  width: 180rpx;
-  height: 180rpx;
+  width: var(--sz-180);
+  height: var(--sz-180);
 }
 .photo-img {
-  width: 180rpx;
-  height: 180rpx;
+  width: var(--sz-180);
+  height: var(--sz-180);
   border-radius: var(--r-sm);
 }
 .photo-del {
   position: absolute;
-  top: -10rpx;
-  right: -10rpx;
+  top: calc(var(--s-2) * -1);
+  right: calc(var(--s-2) * -1);
   background: var(--c-surface);
   border-radius: var(--r-round);
 }
 .photo-add {
-  width: 180rpx;
-  height: 180rpx;
+  width: var(--sz-180);
+  height: var(--sz-180);
   border: 2rpx dashed var(--c-border);
   border-radius: var(--r-sm);
   display: flex;
@@ -482,14 +510,14 @@ function goBackAfterDeliver() {
 .sign-wrap {
   position: relative;
   width: 100%;
-  height: 360rpx;
+  height: var(--sz-360);
   border: 2rpx dashed var(--c-border);
   border-radius: var(--r-sm);
   background: var(--c-surface);
 }
 .sign-canvas {
   width: 100%;
-  height: 360rpx;
+  height: var(--sz-360);
   /* 阻止画布上手指滑动带动页面滚动，保证竖笔连续 */
   touch-action: none;
 }

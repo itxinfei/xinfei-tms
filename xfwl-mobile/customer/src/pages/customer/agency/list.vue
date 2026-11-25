@@ -1,9 +1,9 @@
 <template>
   <view class="page">
-    <u-navbar :title="'网点查询'" :back="true" :borderBottom="false" bgColor="#FFFFFF" title-color="#000000" left-icon-color="var(--c-text-1)" placeholder />
+    <u-navbar :title="'网点查询'" :back="true" :borderBottom="false" bgColor="var(--c-surface)" title-color="var(--c-text-1)" left-icon-color="var(--c-text-1)" placeholder />
 
     <view class="filter-bar">
-      <u-search v-model="keyword" placeholder="搜索网点名称/地址" :showAction="false" bgColor="#FFFFFF" @change="reload" @clear="reload" />
+      <u-search v-model="keyword" placeholder="搜索网点名称/地址" :showAction="false" bgColor="var(--c-surface)" @change="reloadDebounced" @clear="reload" />
     </view>
 
     <!-- 定位排序（《70》§3.1①）：取当前位置→后端按距离升序 -->
@@ -12,17 +12,8 @@
       <text class="loc-btn" @click="onLocate">{{ locReady ? '重新定位' : '开启定位' }}</text>
     </view>
 
-    <u-skeleton v-if="loading && list.length === 0" class="sk" :rows="4" title animated />
-    <view v-else-if="error" class="state-wrap">
-      <u-empty mode="network" text="加载失败，请检查网络后重试" />
-      <view class="retry-wrap">
-        <u-button type="primary" size="small" shape="circle" text="重试" @click="reload" />
-      </view>
-    </view>
-    <view v-else-if="list.length === 0" class="state-wrap">
-      <u-empty mode="list" text="未找到网点" />
-    </view>
-    <view v-else class="agency-list">
+    <StatusBlock :state="listState" message="网点列表加载失败，请检查网络后重试" empty-text="未找到网点" @retry="reload">
+    <view class="agency-list">
       <view v-for="item in list" :key="item.id" class="card agency-card" hover-class="card-hover">
         <view class="agency-head">
           <text class="agency-name">{{ item.name || '-' }}</text>
@@ -48,19 +39,27 @@
       </view>
       <u-loadmore :status="loadStatus" />
     </view>
+    </StatusBlock>
   </view>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+import StatusBlock from '../../../components/StatusBlock.vue';
 import { onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app';
 import { agencyPage } from '../../../common/api/index.js';
 import { maskName, maskPhone } from '../../../common/utils/mask.js';
+import { debounce } from '../../../common/request/safe.js';
 
 const keyword = ref('');
 const list = ref([]);
 const loading = ref(false);
 const error = ref(false);
+const listState = computed(() =>
+  loading.value && list.value.length === 0 ? 'loading'
+    : error.value ? 'fail'
+      : list.value.length === 0 ? 'empty' : 'success'
+);
 const pageNum = ref(1);
 const pageSize = 10;
 const total = ref(0);
@@ -125,6 +124,7 @@ const reload = () => {
   loadStatus.value = 'loadmore';
   loadList(true);
 };
+const reloadDebounced = debounce(reload, 300);
 
 // 网点卡片→地图导航（按地址文本检索；网点无坐标契约，《70》§3.1②）
 const navToAgency = (item) => {
@@ -161,13 +161,13 @@ onReachBottom(() => {
 
 <style lang="scss" scoped>
 .filter-bar {
-  padding: 16rpx 24rpx 0;
+  padding: var(--s-4) var(--s-6) 0;
 }
 .loc-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12rpx 24rpx 0;
+  padding: var(--s-3) var(--s-6) 0;
 }
 .loc-text {
   font-size: var(--f-tip);
@@ -177,13 +177,13 @@ onReachBottom(() => {
   font-size: var(--f-tip);
   color: var(--c-primary);
 }
-.state-wrap { padding-top: 120rpx; }
-.retry-wrap { display: flex; justify-content: center; padding: 32rpx 0; }
-.sk { padding: 16rpx 24rpx; }
+.state-wrap { padding-top: var(--sz-120); }
+.retry-wrap { display: flex; justify-content: center; padding: var(--s-8) 0; }
+.sk { padding: var(--s-4) var(--s-6); }
 .agency-list {
-  padding: 16rpx 24rpx;
+  padding: var(--s-4) var(--s-6);
 }
-.agency-card { padding: 24rpx; }
+.agency-card { padding: var(--s-6); }
 .card-hover {
   background-color: rgba(255, 0, 51, 0.04);
 }
@@ -191,9 +191,9 @@ onReachBottom(() => {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 4rpx;
-  margin-top: 16rpx;
-  padding-top: 12rpx;
+  gap: var(--s-1);
+  margin-top: var(--s-4);
+  padding-top: var(--s-3);
   border-top: 1rpx solid var(--c-border);
 }
 .nav-hover {
@@ -207,7 +207,7 @@ onReachBottom(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12rpx;
+  margin-bottom: var(--s-3);
 }
 .agency-name {
   font-size: var(--f-sub);
@@ -217,8 +217,8 @@ onReachBottom(() => {
 .agency-row {
   display: flex;
   align-items: center;
-  gap: 8rpx;
-  margin-top: 8rpx;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
   font-size: var(--f-aux);
   color: var(--c-text-2);
 }

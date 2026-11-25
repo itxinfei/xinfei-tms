@@ -23,14 +23,18 @@
       </u-radio-group>
     </view>
 
-    <view class="card">
-      <view class="card-title">异常说明（必填）</view>
-      <u--textarea
-        v-model="form.remark"
-        placeholder="请描述异常详情"
-        height="120"
-      ></u--textarea>
-    </view>
+    <u-form ref="formRef" :model="form" :rules="formRules" errorType="none">
+      <FormField prop="remark" :borderBottom="false">
+        <view class="card" id="field-remark">
+          <view class="card-title">异常说明（必填）</view>
+          <u--textarea
+            v-model="form.remark"
+            placeholder="请描述异常详情"
+            height="120"
+          ></u--textarea>
+        </view>
+      </FormField>
+    </u-form>
 
     <!-- 修改点：附件 >=1 张（与快递员端统一的手写照片格） -->
     <view class="card">
@@ -38,7 +42,7 @@
       <view class="photo-list">
         <view class="photo-item" v-for="(p, idx) in photos" :key="idx">
           <image :src="p.url" class="photo-img" mode="aspectFill"></image>
-          <u-icon name="close-circle" class="photo-del" @click="removePhoto(idx)"></u-icon>
+          <u-icon name="close-circle" class="photo-del" aria-label="删除照片" @click="removePhoto(idx)"></u-icon>
         </view>
         <view class="photo-add" @click="onChoosePhoto">
           <u-icon name="camera" size="44" color="var(--c-text-3)"></u-icon>
@@ -47,7 +51,7 @@
       </view>
     </view>
 
-    <view class="action-bar">
+    <ActionBar>
       <u-button
         type="primary"
         text="提交上报"
@@ -55,12 +59,15 @@
         :loading="submitting"
         @click="onSubmit"
       ></u-button>
-    </view>
+    </ActionBar>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
+import ActionBar from '@/components/ActionBar.vue'
+import FormField from '@/components/FormField.vue'
+import { firstValidateError, focusField } from '@/common/ui-form.js'
 import {
   exceptionReport,
   attachmentUpload,
@@ -73,6 +80,9 @@ const id = ref('')
 const transportTaskId = ref('')
 const photos = ref<any[]>([]) // {url, id}
 const submitting = ref(false)
+const formRef = ref<any>(null)
+const formRules = { remark: [{ required: true, message: '请填写异常说明', trigger: 'blur' }] }
+
 const form = reactive<{ exceptionType: string; remark: string }>({
   exceptionType: '',
   remark: '',
@@ -127,8 +137,12 @@ async function onSubmit() {
     uni.showToast({ title: '请选择异常类型', icon: 'none' })
     return
   }
-  if (!form.remark) {
-    uni.showToast({ title: '请填写异常说明', icon: 'none' })
+  try {
+    await formRef.value?.validate()
+  } catch (err: any) {
+    const first = firstValidateError(err)
+    uni.showToast({ title: first.message, icon: 'none' })
+    focusField(first.field)
     return
   }
   if (photos.value.length < 1) {
@@ -149,6 +163,7 @@ async function onSubmit() {
     uni.showToast({ title: '上报成功', icon: 'success' })
     setTimeout(() => uni.navigateBack(), 600)
   } catch (e) {
+    uni.showToast({ title: "异常上报失败，请重试", icon: "none" })
   } finally {
     submitting.value = false
   }
@@ -161,14 +176,14 @@ onLoad((opt: any) => {
 })
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .loc-card {
   padding: var(--s-3) var(--s-4);
 }
 .loc-row {
   display: flex;
   align-items: center;
-  gap: 8rpx;
+  gap: var(--s-2);
 }
 .loc-text {
   flex: 1;
@@ -192,24 +207,24 @@ onLoad((opt: any) => {
 }
 .photo-item {
   position: relative;
-  width: 160rpx;
-  height: 160rpx;
+  width: var(--sz-160);
+  height: var(--sz-160);
 }
 .photo-img {
-  width: 160rpx;
-  height: 160rpx;
+  width: var(--sz-160);
+  height: var(--sz-160);
   border-radius: var(--r-sm);
 }
 .photo-del {
   position: absolute;
-  top: -10rpx;
-  right: -10rpx;
+  top: calc(var(--s-2) * -1);
+  right: calc(var(--s-2) * -1);
   background: var(--c-surface);
   border-radius: var(--r-round);
 }
 .photo-add {
-  width: 160rpx;
-  height: 160rpx;
+  width: var(--sz-160);
+  height: var(--sz-160);
   border: 2rpx dashed var(--c-border);
   border-radius: var(--r-sm);
   display: flex;

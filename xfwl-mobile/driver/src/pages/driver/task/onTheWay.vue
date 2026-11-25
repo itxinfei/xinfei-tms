@@ -1,13 +1,6 @@
 <template>
   <view class="page">
-    <u-skeleton v-if="loading && !hasData" :rows="3" title animated />
-    <view v-else-if="error" class="state-wrap">
-      <u-empty mode="network" text="加载失败，请检查网络后重试"></u-empty>
-      <view class="retry-wrap">
-        <u-button type="primary" size="small" shape="circle" text="重试" @click="loadData()"></u-button>
-      </view>
-    </view>
-    <u-empty v-else-if="!hasData" mode="list" text="当前无在途任务"></u-empty>
+    <StatusBlock :state="listState" message="在途任务加载失败，请检查网络后重试" empty-text="当前无在途任务" @retry="loadData()">
 
     <!-- 修改点：在途为单对象 CargoTranTaskDTO，存在则展示一个卡片 -->
     <view
@@ -59,17 +52,24 @@
         </view>
       </view>
     </template>
+    </StatusBlock>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import StatusBlock from '@/components/StatusBlock.vue'
 import { cargoOnTheWay } from '@/common/api/driver'
 import { transportTaskStatusView } from '@/common/constants'
 import { onShow } from '@dcloudio/uni-app'
 
 const loading = ref(false)
 const error = ref(false)
+const listState = computed(() =>
+  loading.value && !hasData.value ? 'loading'
+    : error.value ? 'fail'
+      : !hasData.value ? 'empty' : 'success'
+)
 const raw = ref<any>(null)
 const list = ref<any[]>([])
 
@@ -105,9 +105,9 @@ function goDetail(id: string) {
 onShow(() => loadData())
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .state-wrap {
-  padding-top: 120rpx;
+  padding-top: var(--sz-120);
 }
 .retry-wrap {
   display: flex;

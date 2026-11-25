@@ -5,7 +5,7 @@ import type { ConfigQueryParams, ConfigForm, ConfigItem } from "./types";
 /**
  * 参数配置（CFG-01）
  *
- * youlai 契约 /api/v1/sys-config，网关 StripPrefix 后落到 xfwl-auth
+ * 上游模板契约 /api/v1/sys-config，网关 StripPrefix 后落到 xfwl-auth
  * SysConfigController；统一响应 ApiResult（code="00000"），分页 PageResult{list,total}。
  */
 const CONFIG_BASE_URL = "/api/v1/sys-config";

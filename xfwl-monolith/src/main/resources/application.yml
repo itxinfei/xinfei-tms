@@ -1,0 +1,125 @@
+server:
+  port: ${SERVER_PORT:8080}
+  tomcat:
+    uri-encoding: UTF-8
+    max-threads: 500
+    min-spare-threads: 20
+  connection-timeout: 50000ms
+
+spring:
+  application:
+    name: xfwl-monolith
+  main:
+    allow-bean-definition-overriding: true
+  # 单体版不接入 Nacos：Feign 用 SimpleDiscoveryClient 把所有服务名静态指向本机回环
+  cloud:
+    service-registry:
+      auto-registration:
+        enabled: false
+    nacos:
+      discovery:
+        enabled: false
+      config:
+        import-check:
+          enabled: false
+    discovery:
+      client:
+        simple:
+          instances:
+            xfwl-base:
+              - uri: http://localhost:8080
+            xfwl-oms:
+              - uri: http://localhost:8080
+            xfwl-work:
+              - uri: http://localhost:8080
+            xfwl-user:
+              - uri: http://localhost:8080
+            xfwl-auth:
+              - uri: http://localhost:8080
+            xfwl-dispatch:
+              - uri: http://localhost:8080
+            xfwl-netty:
+              - uri: http://localhost:8080
+            xfwl-aggregation:
+              - uri: http://localhost:8080
+            xfwl-file-server:
+              - uri: http://localhost:8080
+  jackson:
+    time-zone: GMT+8
+    date-format: yyyy-MM-dd HH:mm:ss
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 100MB
+      max-request-size: 1000MB
+  # 与微服务版同一个库（当前微服务各服务已统一连 xinfei_tms），数据层零迁移
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL_HOST:192.168.20.130}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:xinfei_tms}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:123456}
+    druid:
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+      max-wait: 60000
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      filter:
+        stat:
+          log-slow-sql: true
+          slow-sql-millis: 5000
+          merge-sql: true
+        wall:
+          config:
+            multi-statement-allow: false
+  data:
+    redis:
+      host: ${REDIS_HOST:192.168.20.130}
+      port: ${REDIS_PORT:6379}
+      database: ${REDIS_DATABASE:0}
+      password: ${REDIS_PASSWORD:123456}
+  # RabbitMQ：轨迹/订单事件，口径对齐 xfwl-netty、xfwl-dispatch；连接失败由容器后台重试，不阻断启动
+  rabbitmq:
+    host: ${RABBITMQ_HOST:192.168.20.130}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:xinfei}
+    password: ${RABBITMQ_PASSWORD:123456}
+    virtual-host: ${RABBITMQ_VHOST:/}
+    connection-timeout: 5000
+    listener:
+      simple:
+        acknowledge-mode: manual
+        # 启动阻塞参数（consumerStartTimeout/retryDeclarationInterval）Boot4 未暴露为属性，
+        # 由 MonolithRabbitConfig 通过 containerConfigurer 统一调小，避免 broker 不可达时拖慢启动。
+
+# Sa-Token：token-name 与微服务版一致为 token，共享 Redis 会话
+sa-token:
+  token-name: token
+  timeout: 86400
+  is-concurrent: true
+  is-share: true
+  token-style: uuid
+  is-log: false
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.xinfei.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+    call-setters-on-nulls: false
+    jdbc-type-for-null: NULL
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    banner: false
+    db-config:
+      id-type: ASSIGN_ID
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# xfwl-netty 内置 TCP 服务（GPS 接入），与微服务版同端口
+netty:
+  port: ${NETTY_PORT:8192}

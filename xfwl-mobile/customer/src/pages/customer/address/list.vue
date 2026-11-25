@@ -1,24 +1,20 @@
 <template>
   <view class="page">
-    <u-navbar :title="'地址簿'" :back="true" :borderBottom="false" bgColor="#FFFFFF" title-color="#000000" left-icon-color="var(--c-text-1)" placeholder />
+    <u-navbar :title="'地址簿'" :back="true" :borderBottom="false" bgColor="var(--c-surface)" title-color="var(--c-text-1)" left-icon-color="var(--c-text-1)" placeholder />
 
     <!-- 搜索 -->
     <view class="filter-bar">
-      <u-search v-model="keyword" placeholder="搜索姓名/电话/地址" :showAction="false" bgColor="#FFFFFF" @change="reload" @clear="reload" />
+      <u-search v-model="keyword" placeholder="搜索姓名/电话/地址" :showAction="false" bgColor="var(--c-surface)" @change="reloadDebounced" @clear="reload" />
     </view>
 
-    <!-- 三态 -->
-    <u-skeleton v-if="loading && list.length === 0" class="sk" :rows="4" title animated />
-    <view v-else-if="error" class="state-wrap">
-      <u-empty mode="network" text="加载失败，请检查网络后重试" />
-      <view class="retry-wrap">
-        <u-button type="primary" size="small" shape="circle" text="重试" @click="reload" />
-      </view>
-    </view>
-    <view v-else-if="list.length === 0" class="state-wrap">
-      <u-empty mode="list" text="暂无地址，点下方按钮添加" />
-    </view>
-    <view v-else class="addr-list">
+    <!-- 三态统一由公共组件承接：加载 / 失败+重试 / 空 / 正常 -->
+    <StatusBlock
+      :state="listState"
+      message="地址簿加载失败，请检查网络后重试"
+      empty-text="暂无地址，点下方按钮添加"
+      @retry="reload"
+    >
+      <view class="addr-list">
       <view
         v-for="item in list"
         :key="item.id"
@@ -34,29 +30,33 @@
             <u-tag v-if="item.isDefault === 1" text="默认" type="success" :plain="true" size="mini" />
           </view>
           <view v-if="!selectMode" class="addr-ops">
-            <u-icon name="edit-pen" color="var(--c-primary)" size="20" @click.stop="goEdit(item.id)" />
-            <u-icon name="trash" color="var(--c-error)" size="20" @click.stop="handleDelete(item)" />
+            <u-icon name="edit-pen" color="var(--c-primary)" size="20" aria-label="编辑地址" @click.stop="goEdit(item.id)" />
+            <u-icon name="trash" color="var(--c-error)" size="20" aria-label="删除地址" @click.stop="handleDelete(item)" />
           </view>
         </view>
         <view class="addr-detail">{{ item.fullAddress || item.address || '-' }}</view>
         <view v-if="item.companyName" class="addr-company">{{ item.companyName }}</view>
       </view>
       <u-loadmore :status="loadStatus" />
-    </view>
+      </view>
+    </StatusBlock>
 
     <!-- 底部新增 -->
-    <view v-if="!selectMode" class="action-bar">
+    <ActionBar v-if="!selectMode">
       <u-button type="primary" shape="circle" text="新增地址" class="add-btn" @click="goEdit('')" />
-    </view>
-    <view style="height: 140rpx"></view>
+    </ActionBar>
+    <!-- 底部留白由 .page 的 padding-bottom: calc(var(--fixed-bottom-h) + var(--s-6)) 统一承载 -->
   </view>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+import ActionBar from '../../../components/ActionBar.vue';
 import { onShow, onLoad, onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app';
+import StatusBlock from '../../../components/StatusBlock.vue';
 import { page, remove } from '../../../common/api/address.js';
 import { maskName, maskPhone } from '../../../common/utils/mask.js';
+import { debounce } from '../../../common/request/safe.js';
 
 const keyword = ref('');
 const list = ref([]);
@@ -67,6 +67,12 @@ const pageSize = 10;
 const total = ref(0);
 const loadStatus = ref('loadmore');
 const selectMode = ref(''); // '' 普通模式；'send'/'receipt' 选择回传
+// 三态收敛为单一状态值，交给 StatusBlock 统一渲染
+const listState = computed(() =>
+  loading.value && list.value.length === 0 ? 'loading'
+    : error.value ? 'fail'
+      : list.value.length === 0 ? 'empty' : 'success'
+);
 
 const loadList = async (reset = false) => {
   if (loading.value) return;
@@ -99,6 +105,7 @@ const reload = () => {
   loadStatus.value = 'loadmore';
   loadList(true);
 };
+const reloadDebounced = debounce(reload, 300);
 
 const onItemClick = (item) => {
   if (selectMode.value) {
@@ -123,7 +130,9 @@ const handleDelete = (item) => {
         await remove(item.id);
         uni.showToast({ title: '已删除', icon: 'success' });
         reload();
-      } catch (e) { /* 错误已提示 */ }
+      } catch (e) {
+        uni.showToast({ title: "地址操作失败，请重试", icon: "none" })
+      }
     },
   });
 };
@@ -150,15 +159,15 @@ onReachBottom(() => {
 
 <style lang="scss" scoped>
 .filter-bar {
-  padding: 16rpx 24rpx 0;
+  padding: var(--s-4) var(--s-6) 0;
 }
-.state-wrap { padding-top: 120rpx; }
-.retry-wrap { display: flex; justify-content: center; padding: 32rpx 0; }
-.sk { padding: 16rpx 24rpx; }
+.state-wrap { padding-top: var(--sz-120); }
+.retry-wrap { display: flex; justify-content: center; padding: var(--s-8) 0; }
+.sk { padding: var(--s-4) var(--s-6); }
 .addr-list {
-  padding: 16rpx 24rpx;
+  padding: var(--s-4) var(--s-6);
 }
-.addr-card { padding: 24rpx; }
+.addr-card { padding: var(--s-6); }
 .addr-default {
   background-color: rgba(255, 0, 51, 0.04);
   border-color: rgba(255, 0, 51, 0.16);
@@ -174,7 +183,7 @@ onReachBottom(() => {
 .addr-person {
   display: flex;
   align-items: center;
-  gap: 16rpx;
+  gap: var(--s-4);
 }
 .addr-name {
   font-size: var(--f-sub);
@@ -187,18 +196,18 @@ onReachBottom(() => {
 }
 .addr-ops {
   display: flex;
-  gap: 24rpx;
+  gap: var(--s-6);
 }
 .addr-detail {
-  margin-top: 12rpx;
+  margin-top: var(--s-3);
   font-size: var(--f-body);
   color: var(--c-text-2);
   line-height: 1.5;
 }
 .addr-company {
-  margin-top: 6rpx;
+  margin-top: var(--s-1);
   font-size: var(--f-tip);
   color: var(--c-text-3);
 }
-.add-btn { height: 88rpx; }
+.add-btn { height: var(--sz-88); }
 </style>

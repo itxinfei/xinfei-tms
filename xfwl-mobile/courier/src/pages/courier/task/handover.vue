@@ -12,7 +12,7 @@
       <view class="order-no">运单号：{{ tranOrderId }}</view>
     </view>
 
-    <view class="action-bar">
+    <ActionBar>
       <u-button
         type="primary"
         text="确认交接"
@@ -20,13 +20,14 @@
         :loading="loading"
         @click="onConfirm"
       ></u-button>
-    </view>
+    </ActionBar>
   </view>
 </template>
 
 <script setup lang="ts">
 // 交接：接 tranOrderId，选填交接网点/交接人，确认调 handover
 import { ref, reactive } from 'vue'
+import ActionBar from '@/components/ActionBar.vue'
 import { handover } from '@/common/api/courier'
 import { onLoad } from '@dcloudio/uni-app'
 
@@ -51,13 +52,14 @@ async function onConfirm() {
     uni.showToast({ title: '交接成功', icon: 'success' })
     setTimeout(() => uni.navigateBack(), 600)
   } catch (e) {
+    uni.showToast({ title: "交接提交失败，请重试", icon: "none" })
   } finally {
     loading.value = false
   }
 }
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .order-no {
   display: block;
   font-size: var(--f-body);

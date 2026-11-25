@@ -52,18 +52,6 @@ export const themePalettePresets = [
     },
   },
   {
-    id: "element-plus",
-    name: "Element 蓝",
-    description: "贴近组件默认色识别",
-    colors: {
-      primary: "#409EFF",
-      success: "#67C23A",
-      warning: "#E6A23C",
-      danger: "#F56C6C",
-      info: "#909399",
-    },
-  },
-  {
     id: "emerald",
     name: "翡翠绿",
     description: "翡翠绿，清爽护眼，适合日常运营",

@@ -5,7 +5,7 @@ import com.xinfei.common.base.BaseStatusEnum;
 /**
  * 身份证号验证状态
  *
- * @author itcast
+ * @author xinfei
  */
 
 public enum MemberIdCardVerifyStatus implements BaseStatusEnum<Integer, String> {

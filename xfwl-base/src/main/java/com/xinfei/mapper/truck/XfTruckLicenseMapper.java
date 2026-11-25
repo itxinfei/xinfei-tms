@@ -9,7 +9,7 @@ import org.apache.ibatis.annotations.Mapper;
  * 车辆行驶证表  Mapper 接口
  * </p>
  *
- * @author itcast
+ * @author xinfei
  * @since 2019-12-20
  */
 @Mapper

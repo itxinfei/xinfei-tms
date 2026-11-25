@@ -1,0 +1,250 @@
+/* ==========================================================================
+ * 心飞速运 · 移动三端设计令牌「唯一真源」
+ * 位置：xfwl-mobile/shared/styles/tokens.scss
+ *
+ * 用法：
+ *   ① 各端 src/common/styles/variables.scss 只写两行：
+ *        @import "../../../shared/styles/tokens.scss";
+ *        @include tms-theme;
+ *      该文件仅由 App.vue 的全局 <style> 引入一次，相对路径稳定。
+ *   ② 编译期 $u-* 主题变量见各端 src/uni.scss（因 uni.scss 会被内联注入到
+ *      每个页面的 style 块，无法使用相对路径 @import），其值由 R13 规则
+ *      与下方 $c-* 强制对齐，不允许各自漂移。
+ *
+ * 设计口径（2026-11-08 三阶段审查）：
+ *   - 60/30/10：中性基底 60%，结构与文字 30%，品牌色 ≤10%；高饱和红仅 ≤1% 点缀。
+ *   - 承载白字的主色用 $c-primary（#CC0029，对比度 5.83:1），不用 #FF0033。
+ *   - 层级靠「字号 + 字重 + 行高」三者共同建立，不再靠同字号硬凑。
+ *   - 卡片用 1rpx 描边，不用阴影（二选一，避免描边与阴影叠加的脏边）。
+ * ========================================================================== */
+
+/* --------------------------------------------------------------------------
+ * 1. 编译期变量：本段不产生任何 CSS 输出，可安全被多处 @import
+ * -------------------------------------------------------------------------- */
+
+// 品牌与语义色
+$c-primary:        #CC0029; // 主色，承载白字 5.83:1
+$c-primary-press:  #A80022; // 主按钮按压态
+$c-primary-bright: #FF0033; // 高饱和红，仅用于 ≤1% 面积的点缀
+$c-primary-light:  #FFF0F2; // 主色浅底
+$c-on-primary:     #FFFFFF; // 主色之上的文字
+$c-success:        #00B42A;
+$c-warning:        #FF7D00;
+$c-error:          #D93025;
+$c-error-press:    #B3261E;
+$c-info:           #626E7E;
+
+// uview-plus 运行时主题所需的派生色（禁用 / 浅底 / 压暗），同样只在此处定义一次
+$c-primary-disabled: #E6B3BC;
+$c-warning-dark:     #E56F00;
+$c-warning-disabled: #FFD8A8;
+$c-warning-light:    #FFF7E8;
+$c-success-dark:     #009423;
+$c-success-disabled: #99E0A8;
+$c-success-light:    #EAF9ED;
+$c-error-dark:       #B3261E;
+$c-error-disabled:   #EFA9A5;
+$c-error-light:      #FDECEA;
+$c-info-dark:        #4E5969;
+$c-info-disabled:    #C9CDD4;
+$c-info-light:       #F2F3F5;
+$c-disabled-color:   #C9CDD4;
+
+// 中性色
+$c-text-1:  #1D2129; // 标题
+$c-text-2:  #4E5969; // 正文
+$c-text-3:  #626E7E; // 辅助文字，白底 4.83:1（原 #86909C 仅 3.24:1）
+$c-text-4:  #8A93A0; // 仅图标 / 分隔线，不承载正文
+$c-bg:      #F5F6F8;
+$c-surface: #FFFFFF;
+$c-fill-1:  #F2F3F5;
+$c-border:  #E5E6EB;
+$c-mask:    rgba(0, 0, 0, 0.45);
+
+// 4pt 间距标尺（rpx，750 基准）；--s-7 补齐断号，--s-9..13 扩展大间距
+$s-1: 4rpx;  $s-2: 8rpx;  $s-3: 12rpx; $s-4: 16rpx; $s-5: 20rpx;
+$s-6: 24rpx; $s-7: 28rpx; $s-8: 32rpx; $s-9: 40rpx; $s-10: 48rpx;
+$s-11: 56rpx; $s-12: 64rpx; $s-13: 96rpx;
+
+// 字号阶梯：display / hero / title / sub / body / aux / tip，彼此不得同值
+$f-display: 56rpx;
+$f-hero:    48rpx; // 承接存量 48rpx 大字，避免回落 40rpx 造成层级塌陷
+$f-title:   40rpx;
+$f-sub:     32rpx;
+$f-body:    28rpx;
+$f-aux:     26rpx;
+$f-tip:     24rpx; // 原 22rpx 提升到可操作文字下限
+
+// 行高与字重
+$lh-tight: 1.25;
+$lh-body:  1.6;
+$fw-semibold: 600;
+
+// 圆角
+$r-sm: 8rpx; $r-md: 16rpx; $r-lg: 24rpx; $r-round: 999rpx;
+
+// 布局常量：吸收原先散落的 140rpx / 160rpx 手写占位（不是间距标尺）
+$fixed-bottom-h: 160rpx;
+
+// 存量尺寸兼容档：页面里原本散落的 rpx 字面量全部收进唯一真源。
+// 与 --s-* 的区别：--s-* 是 4pt 间距标尺（padding/margin/gap 一律就近归到它）；
+// --sz-* 用于组件固定尺寸与大跨度留白（缩略图、签到画布、logo、状态栏留白），
+// 这些值强套 4pt 网格会把盒子拉变形，故只做集中托管、不做就近取整。
+// P2 阶段再逐档收紧，页面在此之前不得重新出现 rpx 字面量（R7 守住）。
+$sz-6: 6rpx;     $sz-10: 10rpx;   $sz-18: 18rpx;   $sz-26: 26rpx;
+$sz-30: 30rpx;   $sz-34: 34rpx;   $sz-36: 36rpx;   $sz-38: 38rpx;
+$sz-44: 44rpx;   $sz-60: 60rpx;   $sz-72: 72rpx;   $sz-88: 88rpx;
+$sz-92: 92rpx;   $sz-120: 120rpx; $sz-140: 140rpx; $sz-160: 160rpx;
+$sz-180: 180rpx; $sz-200: 200rpx; $sz-320: 320rpx; $sz-360: 360rpx;
+$sz-480: 480rpx; $sz-840: 840rpx;
+
+// 语义化层级：固定层一档、tabBar 一档、弹层一档
+$z-fixed: 10; $z-tabbar: 20; $z-modal: 100;
+
+/* --------------------------------------------------------------------------
+ * 2. 运行时 CSS 变量 + 全局 class：只在 App.vue 调用一次
+ * -------------------------------------------------------------------------- */
+@mixin tms-theme {
+  page {
+    --c-primary: #{$c-primary};
+    --c-primary-dark: #{$c-primary-press};
+    --c-primary-light: #{$c-primary-light};
+    --c-primary-bright: #{$c-primary-bright};
+    --c-primary-press: #{$c-primary-press};
+    --c-primary-on: #{$c-on-primary};
+    --c-success: #{$c-success};
+    --c-warning: #{$c-warning};
+    --c-error: #{$c-error};
+    --c-error-press: #{$c-error-press};
+    --c-text-1: #{$c-text-1};
+    --c-text-2: #{$c-text-2};
+    --c-text-3: #{$c-text-3};
+    --c-text-4: #{$c-text-4};
+    --c-bg: #{$c-bg};
+    --c-surface: #{$c-surface};
+    --c-fill-1: #{$c-fill-1};
+    --c-border: #{$c-border};
+    --c-mask: #{$c-mask};
+
+    /* uview-plus 3.8.130 的 $u-* 全部是 var(--u-*, fallback)，
+       组件运行时读下面这组变量；因此各端 uni.scss 不需要也不能写死色值。 */
+    --u-primary: #{$c-primary};
+    --u-primary-dark: #{$c-primary-press};
+    --u-primary-disabled: #{$c-primary-disabled};
+    --u-primary-light: #{$c-primary-light};
+    --u-warning: #{$c-warning};
+    --u-warning-dark: #{$c-warning-dark};
+    --u-warning-disabled: #{$c-warning-disabled};
+    --u-warning-light: #{$c-warning-light};
+    --u-success: #{$c-success};
+    --u-success-dark: #{$c-success-dark};
+    --u-success-disabled: #{$c-success-disabled};
+    --u-success-light: #{$c-success-light};
+    --u-error: #{$c-error};
+    --u-error-dark: #{$c-error-dark};
+    --u-error-disabled: #{$c-error-disabled};
+    --u-error-light: #{$c-error-light};
+    --u-info: #{$c-info};
+    --u-info-dark: #{$c-info-dark};
+    --u-info-disabled: #{$c-info-disabled};
+    --u-info-light: #{$c-info-light};
+    --u-main-color: #{$c-text-1};
+    --u-content-color: #{$c-text-2};
+    --u-tips-color: #{$c-text-3};
+    // light-color 保留映射 $c-text-4（视觉负责人定稿：本轮不动，连带 uview 全组件
+    // placeholder 色需真机取色判定，属 P2 后续真机清单首项，不属静态卡口可确定项）。
+    --u-light-color: #{$c-text-4};
+    --u-border-color: #{$c-border};
+    --u-bg-color: #{$c-bg};
+    --u-disabled-color: #{$c-disabled-color};
+
+    --s-1: #{$s-1};  --s-2: #{$s-2};  --s-3: #{$s-3};  --s-4: #{$s-4};
+    --s-5: #{$s-5};  --s-6: #{$s-6};  --s-7: #{$s-7};  --s-8: #{$s-8};
+    --s-9: #{$s-9};  --s-10: #{$s-10}; --s-11: #{$s-11};
+    --s-12: #{$s-12}; --s-13: #{$s-13};
+
+    --f-display: #{$f-display};
+    --f-hero: #{$f-hero};
+    --f-title: #{$f-title};
+    --f-sub: #{$f-sub};
+    --f-body: #{$f-body};
+    --f-aux: #{$f-aux};
+    --f-tip: #{$f-tip};
+    --lh-tight: #{$lh-tight};
+    --lh-body: #{$lh-body};
+    --fw-semibold: #{$fw-semibold};
+    --r-sm: #{$r-sm}; --r-md: #{$r-md}; --r-lg: #{$r-lg}; --r-round: #{$r-round};
+
+    --sz-6: #{$sz-6};     --sz-10: #{$sz-10};   --sz-18: #{$sz-18};   --sz-26: #{$sz-26};
+    --sz-30: #{$sz-30};   --sz-34: #{$sz-34};   --sz-36: #{$sz-36};   --sz-38: #{$sz-38};
+    --sz-44: #{$sz-44};   --sz-60: #{$sz-60};   --sz-72: #{$sz-72};   --sz-88: #{$sz-88};
+    --sz-92: #{$sz-92};   --sz-120: #{$sz-120}; --sz-140: #{$sz-140}; --sz-160: #{$sz-160};
+    --sz-180: #{$sz-180}; --sz-200: #{$sz-200}; --sz-320: #{$sz-320}; --sz-360: #{$sz-360};
+    --sz-480: #{$sz-480}; --sz-840: #{$sz-840};
+
+    --fixed-bottom-h: #{$fixed-bottom-h};
+    --z-fixed: #{$z-fixed}; --z-tabbar: #{$z-tabbar}; --z-modal: #{$z-modal};
+
+    background: var(--c-bg);
+    color: var(--c-text-2);
+    font-size: var(--f-body);
+    line-height: var(--lh-body);
+  }
+
+  .page {
+    min-height: 100vh;
+    background: var(--c-bg);
+    padding: var(--s-4);
+    padding-bottom: calc(var(--fixed-bottom-h) + var(--s-6));
+    box-sizing: border-box;
+  }
+
+  .card {
+    background: var(--c-surface);
+    border: 1rpx solid var(--c-border);
+    border-radius: var(--r-md);
+    padding: var(--s-4);
+    margin-bottom: var(--s-3);
+    box-sizing: border-box;
+  }
+
+  .action-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--z-fixed);
+    padding: var(--s-3) var(--s-4);
+    padding-bottom: calc(var(--s-3) + env(safe-area-inset-bottom));
+    background: var(--c-surface);
+    border-top: 1rpx solid var(--c-border);
+    box-sizing: border-box;
+  }
+
+  .text-1 { color: var(--c-text-1); }
+  .text-2 { color: var(--c-text-2); }
+  .text-3 { color: var(--c-text-3); }
+  // .text-4 仅用于图标 / 分隔线 / 状态圆点等不承载文字的元素；
+  // 白底约 3.1:1，低于 AA 正文 4.5:1，文字一律用 .text-3 / .t-aux / .t-tip。
+  .text-4 { color: var(--c-text-4); }
+
+  // 文字层级：字号 + 字重 + 行高同时生效，避免「同字号造层级」
+  .t-display {
+    font-size: var(--f-display); font-weight: var(--fw-semibold);
+    line-height: var(--lh-tight); color: var(--c-text-1);
+  }
+  .t-title {
+    font-size: var(--f-title); font-weight: var(--fw-semibold);
+    line-height: var(--lh-tight); color: var(--c-text-1);
+  }
+  .t-sub {
+    font-size: var(--f-sub); font-weight: var(--fw-semibold);
+    line-height: var(--lh-tight); color: var(--c-text-1);
+  }
+  .t-body { font-size: var(--f-body); line-height: var(--lh-body); color: var(--c-text-2); }
+  .t-aux  { font-size: var(--f-aux);  line-height: var(--lh-body); color: var(--c-text-3); }
+  .t-tip  { font-size: var(--f-tip);  line-height: var(--lh-body); color: var(--c-text-3); }
+
+  // 品牌红仅作点缀：小面积、非文字承载
+  .accent-dot { color: var(--c-primary-bright); }
+}

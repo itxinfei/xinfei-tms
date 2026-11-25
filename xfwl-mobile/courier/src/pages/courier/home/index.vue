@@ -1,42 +1,43 @@
 <template>
   <view class="page">
-    <!-- 顶部 hero：品牌标题栏 + 欢迎语（页级 navigationStyle:custom） -->
+    <!-- 品牌头：主色改为令牌后白字对比度 5.83:1，不再用硬编码高饱和红 -->
     <view class="hero">
-      <view class="hero-bar"><text class="hero-brand">快递员工作台</text></view>
-      <view class="hero-title">您好，快递员</view>
-      <view class="hero-sub">取件派件 · 扫码接单 · 实时追踪</view>
+      <view class="hero-bar"><text class="hero-brand">心飞速运 · 快递员工作台</text></view>
+      <text class="t-title hero-title">您好，快递员</text>
+      <text class="t-aux hero-sub">取件派件 · 扫码接单 · 实时追踪</text>
     </view>
 
-    <!-- 取件 / 派件任务量（count 契约已归一 data 包裹，《70》§3.3①） -->
-    <view class="card stat-card" v-if="stat">
+    <!-- 作业端第一步：扫码。主按钮 ≥96rpx，删掉只赋值不加载数据的装饰 u-tabs -->
+    <view class="card scan-cta">
+      <text class="t-sub scan-label">开始作业</text>
+      <u-button
+        type="primary"
+        text="扫码接单"
+        shape="circle"
+        :customStyle="ctaStyle"
+        @click="onScan"
+      />
+      <text class="t-tip scan-hint">扫描运单条码，直接打开任务详情</text>
+    </view>
+
+    <!-- 取派任务量：失败给可见文案与重试，不把失败伪装成 0 -->
+    <view class="card stat-card">
       <view class="stat-item">
-        <text class="stat-num">{{ pickupCount }}</text>
+        <text class="stat-num">{{ statFailed ? '—' : pickupCount }}</text>
         <text class="stat-label">取件任务</text>
       </view>
       <view class="stat-item">
-        <text class="stat-num">{{ dispatchCount }}</text>
+        <text class="stat-num">{{ statFailed ? '—' : dispatchCount }}</text>
         <text class="stat-label">派件任务</text>
       </view>
     </view>
+    <view v-if="statFailed" class="stat-error">
+      <text class="t-tip">任务数暂不可用</text>
+      <u-button type="primary" plain size="mini" text="重试" @click="loadCount" />
+    </view>
 
-    <!-- 取件 / 派件 双标签 -->
-    <u-tabs
-      :list="tabs"
-      :current="tabIndex"
-      @click="onTab"
-      lineColor="var(--c-primary)"
-      :activeStyle="{ color: 'var(--c-primary)' }"
-      :inactiveStyle="{ color: 'var(--c-text-2)' }"
-    ></u-tabs>
-
-    <u-gap height="16"></u-gap>
-
-    <!-- 功能宫格：扫码接单 / 我的任务 / 绩效统计 / 批量入库 -->
+    <!-- 其余入口降为次要宫格，不与扫码争主视觉 -->
     <view class="card entry-grid">
-      <view class="entry" @click="onScan">
-        <view class="entry-icon"><u-icon name="scan" size="40" color="var(--c-primary)"></u-icon></view>
-        <text class="entry-text">扫码接单</text>
-      </view>
       <view class="entry" @click="goTab('pages/courier/task/list')">
         <view class="entry-icon"><u-icon name="list" size="40" color="var(--c-primary)"></u-icon></view>
         <text class="entry-text">我的任务</text>
@@ -54,14 +55,14 @@
 </template>
 
 <script setup lang="ts">
-// 任务大厅：hero + 待执行/进行中计数 + 取派双标签 + 扫码接单 + 我的任务入口
+// 快递员工作台：扫码优先 + 取派计数三态；无装饰控件、无可点击但无落地的入口
 import { ref } from 'vue'
 import { courierCount } from '@/common/api/courier'
 import { onShow } from '@dcloudio/uni-app'
 
-const tabs = [{ name: '取件' }, { name: '派件' }]
-const tabIndex = ref(0)
+const ctaStyle = { height: 'var(--s-13)', fontSize: 'var(--f-sub)' }
 const stat = ref<any>(null)
+const statFailed = ref(false)
 const pickupCount = ref(0)
 const dispatchCount = ref(0)
 
@@ -74,7 +75,7 @@ function goStats() {
   uni.navigateTo({ url: '/pages/courier/stats/index' })
 }
 
-// 扫码接单：解析运单号后跳详情
+// 扫码接单：解析运单号后跳详情；取消扫码也给出明确反馈
 function onScan() {
   uni.scanCode({
     success: (res) => {
@@ -85,12 +86,10 @@ function onScan() {
       }
       uni.navigateTo({ url: '/pages/courier/task/detail?id=' + id })
     },
-    fail: () => {},
+    fail: () => {
+      uni.showToast({ title: '已取消扫码', icon: 'none' })
+    },
   })
-}
-
-function onTab(e: any) {
-  tabIndex.value = e.index
 }
 
 // 批量入库：非 tabBar 页，走 navigateTo
@@ -98,7 +97,7 @@ function goWarehousing() {
   uni.navigateTo({ url: '/pages/courier/task/warehousing' })
 }
 
-// 首页计数：taskType 1=取件 2=派件（可选，失败不阻塞）
+// 首页计数：taskType 1=取件 2=派件；失败进入可见错误态，不清空成 0
 async function loadCount() {
   try {
     const [p, d] = await Promise.all([
@@ -108,17 +107,20 @@ async function loadCount() {
     pickupCount.value = Number(p) || 0
     dispatchCount.value = Number(d) || 0
     stat.value = true
+    statFailed.value = false
   } catch (e) {
-    stat.value = null
+    stat.value = false
+    statFailed.value = true
+    uni.showToast({ title: '任务数暂不可用', icon: 'none' })
   }
 }
 
 onShow(() => loadCount())
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .hero {
-  background: linear-gradient(135deg, #FF0033 0%, #CC0029 100%);
+  background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-dark) 100%);
   margin: calc(var(--s-4) * -1) calc(var(--s-4) * -1) var(--s-4);
   padding: calc(var(--s-8) + env(safe-area-inset-top)) var(--s-6) var(--s-8);
 }
@@ -128,23 +130,16 @@ onShow(() => loadCount())
   margin-bottom: var(--s-2);
 }
 .hero-brand {
-  font-size: 34rpx;
-  font-weight: 600;
-  color: #fff;
+  font-size: var(--f-sub);
+  font-weight: var(--fw-semibold);
+  color: var(--c-primary-on);
 }
-.hero-title {
-  color: var(--c-surface);
-  font-size: var(--f-title);
-  font-weight: bold;
-}
-.hero-sub {
-  color: rgba(255, 255, 255, 0.85);
-  font-size: var(--f-aux);
-  margin-top: var(--s-2);
-}
-.stat-card {
-  display: flex;
-}
+.hero-title { display: block; color: var(--c-primary-on); }
+.hero-sub { display: block; color: var(--c-primary-on); margin-top: var(--s-2); }
+.scan-cta { padding: var(--s-5); }
+.scan-label { display: block; margin-bottom: var(--s-4); }
+.scan-hint { display: block; text-align: center; margin-top: var(--s-3); }
+.stat-card { display: flex; }
 .stat-item {
   flex: 1;
   display: flex;
@@ -152,27 +147,28 @@ onShow(() => loadCount())
   align-items: center;
 }
 .stat-num {
-  font-size: 40rpx;
+  font-size: var(--f-title);
   color: var(--c-primary);
-  font-weight: bold;
+  font-weight: var(--fw-semibold);
 }
 .stat-label {
   font-size: var(--f-tip);
   color: var(--c-text-3);
   margin-top: var(--s-1);
 }
-.entry-grid {
+.stat-error {
   display: flex;
-  justify-content: space-around;
-}
-.entry {
-  display: flex;
-  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  color: var(--c-error);
+  margin-bottom: var(--s-4);
 }
+.stat-error :deep(.u-button) { margin-left: var(--s-3); }
+.entry-grid { display: flex; justify-content: space-around; }
+.entry { display: flex; flex-direction: column; align-items: center; }
 .entry-icon {
-  width: 96rpx;
-  height: 96rpx;
+  width: var(--s-13);
+  height: var(--s-13);
   border-radius: var(--r-md);
   background: var(--c-primary-light);
   display: flex;
@@ -180,7 +176,7 @@ onShow(() => loadCount())
   justify-content: center;
 }
 .entry-text {
-  font-size: 26rpx;
+  font-size: var(--f-aux);
   color: var(--c-text-2);
   margin-top: var(--s-2);
 }

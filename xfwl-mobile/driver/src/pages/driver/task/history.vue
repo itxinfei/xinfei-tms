@@ -14,14 +14,12 @@
     </view>
 
     <view class="list-wrap">
-      <u-skeleton v-if="loading && list.length === 0" :rows="4" title animated />
-      <view v-else-if="error" class="state-wrap">
-        <u-empty mode="network" text="加载失败，请检查网络后重试"></u-empty>
-        <view class="retry-wrap">
-          <u-button type="primary" size="small" shape="circle" text="重试" @click="loadData()"></u-button>
-        </view>
-      </view>
-      <u-empty v-else-if="list.length === 0" mode="list" text="暂无历史任务"></u-empty>
+      <StatusBlock
+        :state="listState"
+        message="历史任务加载失败，请检查网络后重试"
+        empty-text="暂无历史任务"
+        @retry="loadData()"
+      >
       <view
         v-for="item in list"
         :key="item.id"
@@ -42,13 +40,15 @@
         </view>
       </view>
       <u-loadmore v-if="list.length > 0" :status="loadStatus"></u-loadmore>
+      </StatusBlock>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
 // DRV-05 历史任务：复用 cargoHistory（后端已固定 status=COMPLETED 且按当前司机隔离）
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import StatusBlock from '@/components/StatusBlock.vue'
 import { cargoHistory } from '@/common/api/driver'
 import { driverJobStatusView } from '@/common/constants'
 import { onShow, onReachBottom, onPullDownRefresh } from '@dcloudio/uni-app'
@@ -57,6 +57,11 @@ const list = ref<any[]>([])
 const loading = ref(false)
 const error = ref(false)
 const loadStatus = ref('loadmore')
+const listState = computed(() =>
+  loading.value && list.value.length === 0 ? 'loading'
+    : error.value ? 'fail'
+      : list.value.length === 0 ? 'empty' : 'success'
+)
 const keyword = ref('')
 const page = ref(1)
 const pageSize = 10
@@ -107,7 +112,7 @@ onReachBottom(() => {
 })
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .search-bar {
   padding: var(--s-3) var(--s-4) 0;
 }
@@ -115,7 +120,7 @@ onReachBottom(() => {
   margin-top: var(--s-3);
 }
 .state-wrap {
-  padding-top: 120rpx;
+  padding-top: var(--sz-120);
 }
 .retry-wrap {
   display: flex;

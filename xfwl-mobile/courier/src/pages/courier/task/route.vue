@@ -1,5 +1,6 @@
 <template>
   <view class="page">
+    <view v-if="message" class="card t-aux" role="status">{{ message }}</view>
     <view class="card map-card">
       <map
         class="map"
@@ -11,14 +12,16 @@
       ></map>
     </view>
 
-    <!-- 路由节点 -->
-    <view class="card" v-if="routeList.length">
-      <text class="title">路由节点</text>
-      <view class="node" v-for="(n, idx) in routeList" :key="idx">
-        <text class="node-name">{{ n.agencyName || '—' }}</text>
-        <text class="node-time">{{ n.arrivalTime || '' }}</text>
+    <!-- 路由节点（三态：加载中 / 失败带重试 / 空 / 正常；地图不随节点态隐藏） -->
+    <StatusBlock :state="routeState" :message="errorMsg" empty-text="暂无路由节点" @retry="loadRoute">
+      <view class="card">
+        <text class="title">路由节点</text>
+        <view class="node" v-for="(n, idx) in routeList" :key="idx">
+          <text class="node-name">{{ n.agencyName || '—' }}</text>
+          <text class="node-time">{{ n.arrivalTime || '' }}</text>
+        </view>
       </view>
-    </view>
+    </StatusBlock>
 
     <u-gap height="12"></u-gap>
     <text class="tip">每 10 秒刷新快递员实时位置</text>
@@ -27,8 +30,9 @@
 
 <script setup lang="ts">
 // 路由/轨迹：接任务 id 调 taskRoute 取节点；地图展示 + 每 10s 轮询 traceLatest 取快递员实时位置
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { taskRoute, traceLatest } from '@/common/api/courier'
+import StatusBlock from '@/components/StatusBlock.vue'
 import { wgs84ToGcj02 } from '@/common/utils/coord'
 import { useUserStore } from '@/common/store/user'
 import { onLoad, onUnload } from '@dcloudio/uni-app'
@@ -89,6 +93,18 @@ function buildMarkers() {
 }
 
 const lastLatLng = ref<{ lng: number; lat: number } | null>(null)
+// 轮询失败不弹窗刷屏，改为常驻可见状态条（软失败，不阻塞节点展示）
+const message = ref('')
+
+// 路由节点三态：加载中 / 失败（带重试）/ 空 / 正常。地图始终展示，不随节点态隐藏。
+const loading = ref(true)
+const errorMsg = ref('')
+const routeState = computed(() => {
+  if (loading.value && !routeList.value.length) return 'loading'
+  if (errorMsg.value) return 'fail'
+  if (!routeList.value.length) return 'empty'
+  return 'success'
+})
 
 async function pollTrace() {
   // businessId 取当前快递员 id，容错
@@ -104,11 +120,14 @@ async function pollTrace() {
       buildMarkers()
     }
   } catch (e) {
+    message.value = "实时位置暂不可用，显示的是上次结果"
     // 轮询失败静默，不影响节点展示
   }
 }
 
 async function loadRoute() {
+  loading.value = true
+  routeError.value = ''
   try {
     const r = await taskRoute(id.value)
     routeList.value = normalizeRoute(r)
@@ -122,7 +141,11 @@ async function loadRoute() {
     }
     buildMarkers()
   } catch (e) {
+    // 失败态交给 StatusBlock 展示可诊断文案 + 重试，不再弹窗刷屏
+    errorMsg.value = '路由节点加载失败，请重试'
     routeList.value = []
+  } finally {
+    loading.value = false
   }
 }
 
@@ -140,14 +163,14 @@ onUnload(() => {
 })
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .map-card {
   padding: 0;
   overflow: hidden;
 }
 .map {
   width: 100%;
-  height: 480rpx;
+  height: var(--sz-480);
   border-radius: var(--r-md);
 }
 .title {

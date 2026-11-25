@@ -1,9 +1,21 @@
 <template>
   <view class="page track-page">
-    <u-navbar :title="'实时轨迹'" :back="true" :borderBottom="false" bgColor="#FF0033" />
+    <u-navbar
+      :title="'实时轨迹'"
+      :back="true"
+      :borderBottom="false"
+      bgColor="var(--c-surface)"
+      title-color="var(--c-text-1)"
+      left-icon-color="var(--c-text-1)"
+    />
+    <view v-if="errorMsg" class="card t-aux track-error" role="status">
+      <text>{{ errorMsg }}</text>
+      <!-- 首次硬失败且无任何旧轨迹时，给出手动重试入口（轮询软失败不展示） -->
+      <u-button v-if="!hasTrack" size="mini" :plain="true" text="重试" @click="load" />
+    </view>
 
     <view v-if="loading" class="state-wrap">
-      <u-loading-page :loading="true" :bgColor="'#F5F6F8'" />
+      <u-loading-page :loading="true" :bgColor="'var(--c-bg)'" />
     </view>
     <view v-else-if="!hasTrack" class="state-wrap">
       <u-empty mode="map" text="暂无轨迹数据" />
@@ -40,9 +52,12 @@ import { onLoad, onShow, onHide, onUnload } from '@dcloudio/uni-app';
 import { trace } from '../../../common/api/index.js';
 import { safeToGcj02 } from '../../../common/utils/coord.js';
 import { statusInfo } from '../../../common/utils/order.js';
+import { MAP_SUCCESS, MAP_PRIMARY, MAP_LINE } from '../../../common/theme.js';
 
 const id = ref('');
 const loading = ref(false);
+// 轮询失败保留旧轨迹并给出常驻可见提示，不每 10 秒弹一次窗
+const errorMsg = ref('');
 const orderStatus = ref(null);
 const tracks = ref([]);
 const latestMsg = ref('加载中...');
@@ -90,7 +105,7 @@ const markers = computed(() => {
       longitude: ps[0].lng,
       width: 20,
       height: 20,
-      label: { content: '起点', color: '#00B42A', fontSize: 12, anchorX: -8, anchorY: -28 },
+      label: { content: '起点', color: MAP_SUCCESS, fontSize: 12, anchorX: -8, anchorY: -28 },
     });
     // 最新点（品牌图标 + 品牌红标签）
     const last = ps[ps.length - 1];
@@ -101,7 +116,7 @@ const markers = computed(() => {
       iconPath: '/static/logo-mark-transparent.png',
       width: 28,
       height: 28,
-      label: { content: '当前位置', color: '#FF0033', fontSize: 12, anchorX: -20, anchorY: -34 },
+      label: { content: '当前位置', color: MAP_PRIMARY, fontSize: 12, anchorX: -20, anchorY: -34 },
     });
   }
   return arr;
@@ -112,7 +127,7 @@ const polyline = computed(() => {
   return [
     {
       points: points.value,
-      color: '#FF0033',
+      color: MAP_LINE,
       width: 4,
       dottedLine: false,
     },
@@ -132,6 +147,8 @@ const load = async ({ silent = false } = {}) => {
       latestMsg.value = '暂无轨迹数据';
     }
   } catch (e) {
+    errorMsg.value = silent ? "轨迹刷新失败，显示的是上次结果" : "轨迹加载失败，请稍后重试"
+    if (!silent) uni.showToast({ title: errorMsg.value, icon: "none" })
     // 首次失败清空展示空态；轮询失败静默保留旧轨迹
     if (!silent) tracks.value = [];
   } finally {
@@ -155,20 +172,26 @@ onShow(() => {
 
 <style lang="scss" scoped>
 .track-page { padding: 0; }
-.state-wrap { padding-top: 120rpx; }
+.state-wrap { padding-top: var(--sz-120); }
+.track-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-3);
+}
 .track-tip {
   text-align: center;
   color: var(--c-text-3);
   font-size: var(--f-tip);
-  margin-top: 16rpx;
+  margin-top: var(--s-4);
 }
 .track-map {
   width: 100%;
   height: 70vh;
 }
 .track-panel {
-  margin: 16rpx 24rpx 32rpx;
-  padding: 24rpx;
+  margin: var(--s-4) var(--s-6) var(--s-8);
+  padding: var(--s-6);
   background: var(--c-surface);
   border-radius: var(--r-md);
   box-shadow: var(--shadow-card);
@@ -176,7 +199,7 @@ onShow(() => {
 .panel-row {
   display: flex;
   justify-content: space-between;
-  padding: 8rpx 0;
+  padding: var(--s-2) 0;
   font-size: var(--f-body);
 }
 .panel-label { color: var(--c-text-3); }

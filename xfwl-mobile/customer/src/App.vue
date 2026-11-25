@@ -16,11 +16,7 @@ export default {
 <style lang="scss">
 /* uview-plus 全局样式 */
 @import "uview-plus/index.scss";
-/* 业务设计 Token */
+/* 设计令牌唯一真源：xfwl-mobile/shared/styles/tokens.scss，经薄壳注入一次 */
 @import "@/common/styles/variables.scss";
-
-/* 微交互：按钮按压态统一按压红（《70》§2.6） */
-.u-button--active {
-  background-color: var(--c-primary-dark) !important;
-}
+/* 按压态交给 uview-plus 按 type 取主题变量；不再用全局 !important 覆盖。 */
 </style>

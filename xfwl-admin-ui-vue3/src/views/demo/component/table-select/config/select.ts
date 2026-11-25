@@ -27,7 +27,7 @@ const selectConfig: ISelectConfig = {
         data: [
           {
             value: 1,
-            label: "有来技术",
+            label: "心飞物流",
             children: [
               {
                 value: 2,

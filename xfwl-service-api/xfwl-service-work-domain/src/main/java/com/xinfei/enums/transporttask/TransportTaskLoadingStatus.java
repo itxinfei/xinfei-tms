@@ -5,7 +5,7 @@ import com.xinfei.common.base.BaseStatusEnum;
 /**
  * 运输任务满载状态
  *
- * @author itcast
+ * @author xinfei
  */
 
 public enum TransportTaskLoadingStatus implements BaseStatusEnum<Integer, String> {

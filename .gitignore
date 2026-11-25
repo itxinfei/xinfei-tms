@@ -98,13 +98,8 @@ docs/凭据泄露处置方案.md
 docs/**/*.md
 CLAUDE.md
 
-# 需求文档（2026-10-23 起：精简后顶层真源纳入【内网 gitea】，仍禁止推公开 gitee/github）
-# 原 2026-10-14 规则为整目录禁入；现顶层 *.md 真源放行，归档/凭据/工作台账继续忽略
-!docs/需求文档/
-!docs/需求文档/*.md
-docs/需求文档/_archive/
-docs/需求文档/57-账号密码与凭据总表.md
-docs/需求文档/99-任务认领台账.md
+# 需求文档（2026-10-26 用户定：整目录禁止推送公开端 gitee/github，取消 git 关联，仅保留本地文件）
+docs/需求文档/
 
 # ===== 从 Git 索引中永久屏蔽（已取消跟踪，保留本地，禁止提交）=====
 # 内部需求文档 - 76 份 SRS 文档
@@ -210,3 +205,7 @@ license-*.txt
 /latest.json
 # MCP 一键安装脚本（含真实第三方 API Key，严禁入库；key 需轮换）
 docs/install-mcp.ps1
+
+# 许可证密钥设计/运营文档含内部信息，禁止上传公开端 gitee（用户 2026-10-26 定）
+/LICENSE-KEY-DESIGN.md
+/LICENSE-KEY-OPERATIONS.md

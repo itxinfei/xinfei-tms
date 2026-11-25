@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <artifactId>xinfei-tms</artifactId>
+        <groupId>com.xinfei</groupId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+    <artifactId>xfwl-monolith</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <name>xfwl-monolith</name>
+    <description>心飞物流TMS 单体版：复用微服务全部业务模块，单进程装配，面向轻量化私有化部署</description>
+
+    <properties>
+        <xfwl.version>1.0.0-SNAPSHOT</xfwl.version>
+    </properties>
+
+    <dependencies>
+        <!-- 单体是可部署应用：显式引入基础 starter（含 spring-boot-autoconfigure）。
+             Boot 4 的 spring-boot-starter-web 不再传递基础 starter/autoconfigure，
+             而单体装配层需要直接引用 autoconfigure 的 WebMvcRegistrations，故在此显式声明。 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- 公共基础 -->
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-common</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+
+        <!-- 领域契约与实体（service-api 全部子模块） -->
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-service-base-api</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-service-oms-api</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-service-work-api</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-service-user-api</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-service-aggregation-api</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-service-auth-api</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-service-base-domain</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-service-oms-domain</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-service-work-domain</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-service-user-domain</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-service-aggregation-domain</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-service-auth-domain</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+
+        <!-- 业务应用模块（微服务版原模块，零代码复制直接依赖） -->
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-base</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-oms</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-work</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-user</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-dispatch</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-netty</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-aggregation</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-auth</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-file-server</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-optimizer</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+
+        <!-- 移动端 BFF（四个 Web 子模块） -->
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-web-manager</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-web-driver</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-web-courier</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xinfei</groupId>
+            <artifactId>xfwl-web-customer</artifactId>
+            <version>${xfwl.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
