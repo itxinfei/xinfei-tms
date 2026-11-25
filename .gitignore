@@ -209,3 +209,6 @@ docs/install-mcp.ps1
 # 许可证密钥设计/运营文档含内部信息，禁止上传公开端 gitee（用户 2026-10-26 定）
 /LICENSE-KEY-DESIGN.md
 /LICENSE-KEY-OPERATIONS.md
+
+# filter-branch 残留目录（不入库）
+.git-rewrite/
